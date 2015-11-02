@@ -1,2 +1,2 @@
-# rsg
-Resource Sync Gui
+# resyto
+Resource Sync Tool
