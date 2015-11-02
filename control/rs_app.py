@@ -5,7 +5,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from main.rs_window import RsMainWindow
+from control.rs_window import RsMainWindow
 from model.config import Configuration
 
 
@@ -17,8 +17,6 @@ class RsApplication(QApplication):
 
         print("starting")
         self.aboutToQuit.connect(self.__before_close__)
-        #self.setApplicationDisplayName("RSync")
-        #self.setApplicationName("ReSync")
 
         sys.exit(self.exec_())
 

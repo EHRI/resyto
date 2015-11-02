@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QTabWidget, QWidget
 
-from views.config_frame import ConfigFrame
-from views.upload_frame import UploadFrame
+from view.config_frame import ConfigFrame
+from view.upload_frame import UploadFrame
 
 
 class RsMainWindow(QMainWindow):
