@@ -4,6 +4,9 @@ from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QTabWidget, QWidget
 
 from view.config_frame import ConfigFrame
 from view.upload_frame import UploadFrame
+import i18n
+
+_ = i18n.language.gettext #use ugettext instead of getttext to avoid unicode errors
 
 
 class RsMainWindow(QMainWindow):
@@ -27,17 +30,17 @@ class RsMainWindow(QMainWindow):
 
         exit_action = QAction("&Exit", self)
         exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip("Exit application")
+        exit_action.setStatusTip(_("Exit application"))
         exit_action.triggered.connect(qApp.quit)
 
         show_configure_action = QAction("&Configure", self)
         show_configure_action.setShortcut("Ctrl+C")
-        show_configure_action.setStatusTip("Configure rsync")
+        show_configure_action.setStatusTip(_("Configure rsync"))
         show_configure_action.triggered.connect(self.show_configure)
 
         show_upload_action = QAction("&Upload", self)
         show_upload_action.setShortcut("Ctrl+U")
-        show_upload_action.setStatusTip("Uploafd files")
+        show_upload_action.setStatusTip(_("Upload files"))
         show_upload_action.triggered.connect(self.show_upload)
 
 
@@ -54,7 +57,7 @@ class RsMainWindow(QMainWindow):
 
         viewMenu = self.menubar.addMenu("&View")
         viewMenu.addAction(showMainAction)
-        viewMenu.addAction(show_configure_action)   # on mac under [application] > Preverences
+        viewMenu.addAction(show_configure_action)   # on mac under [application] > Preferences
         viewMenu.addAction(show_upload_action)
 
 

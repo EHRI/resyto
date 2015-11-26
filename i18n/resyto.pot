@@ -1,0 +1,61 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-26 12:24+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: control/rs_window.py:33
+msgid "Exit application"
+msgstr ""
+
+#: control/rs_window.py:38
+msgid "Configure rsync"
+msgstr ""
+
+#: control/rs_window.py:43
+msgid "Upload files"
+msgstr ""
+
+#: view/config_frame.py:8
+msgid ""
+"Source Description: \n"
+"description of the source, to be attached to the sourcedescription in a "
+"'describedby' relation"
+msgstr ""
+
+#: view/config_frame.py:26 view/config_frame.py:33
+msgid "browse"
+msgstr ""
+
+#: view/config_frame.py:28
+msgid "resource dir:"
+msgstr ""
+
+#: view/config_frame.py:35
+msgid "resync dir:"
+msgstr ""
+
+#: view/config_frame.py:46
+msgid "sourcedesc:"
+msgstr ""
+
+#: view/config_frame.py:50
+msgid "The url domain to be used in the resync files"
+msgstr ""
+
+#: view/config_frame.py:51
+msgid "URL prefix:"
+msgstr ""
