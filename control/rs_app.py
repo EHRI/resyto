@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import i18n
 
 from PyQt5.QtWidgets import QApplication
 
@@ -13,6 +14,9 @@ class RsApplication(QApplication):
 
     def __init__(self, args):
         super().__init__(args)
+        # TODO: get the language from the config file
+        i18n.set_language("nl-NL")
+
         main_window = RsMainWindow()
 
         print("starting")

@@ -1,0 +1,82 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-26 15:12+0100\n"
+"PO-Revision-Date: 2015-11-26 15:14+0100\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.6\n"
+"Last-Translator: \n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Language: fr_BE\n"
+
+#: control/rs_window.py:34
+msgid "Exit application"
+msgstr ""
+
+#: control/rs_window.py:39
+msgid "Configure rsync"
+msgstr ""
+
+#: control/rs_window.py:44
+msgid "Upload files"
+msgstr ""
+
+#: control/rs_window.py:80
+msgid "&Configuration"
+msgstr ""
+
+#: control/rs_window.py:82
+msgid "Upload"
+msgstr ""
+
+#: control/rs_window.py:84
+msgid "Statistics"
+msgstr ""
+
+#: control/rs_window.py:85
+msgid "Manual Sets"
+msgstr ""
+
+#: control/rs_window.py:86
+msgid "Rule-based Sets"
+msgstr ""
+
+#: view/config_frame.py:8
+msgid ""
+"Source Description: \n"
+"description of the source, to be attached to the sourcedescription in a "
+"'describedby' relation"
+msgstr ""
+
+#: view/config_frame.py:26 view/config_frame.py:33
+msgid "browse"
+msgstr "naviguer"
+
+#: view/config_frame.py:28
+msgid "resource dir:"
+msgstr ""
+
+#: view/config_frame.py:35
+msgid "resync dir:"
+msgstr ""
+
+#: view/config_frame.py:46
+msgid "sourcedesc:"
+msgstr ""
+
+#: view/config_frame.py:50
+msgid "The url domain to be used in the resync files"
+msgstr ""
+
+#: view/config_frame.py:51
+msgid "URL prefix:"
+msgstr ""

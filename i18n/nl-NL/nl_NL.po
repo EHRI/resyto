@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-26 12:25+0100\n"
-"PO-Revision-Date: 2015-11-26 12:26+0100\n"
+"POT-Creation-Date: 2015-11-26 16:42+0100\n"
+"PO-Revision-Date: 2015-11-26 16:43+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: nl_NL\n"
@@ -18,45 +18,99 @@ msgstr ""
 "X-Generator: Poedit 1.8.6\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: control/rs_window.py:33
+#: control/rs_window.py:29
+msgid "&Exit"
+msgstr ""
+
+#: control/rs_window.py:31
 msgid "Exit application"
 msgstr "Exit applicatie"
 
-#: control/rs_window.py:38
+#: control/rs_window.py:34
+msgid "&Configure"
+msgstr ""
+
+#: control/rs_window.py:36
 msgid "Configure rsync"
 msgstr ""
 
-#: control/rs_window.py:43
+#: control/rs_window.py:39
+msgid "&Upload"
+msgstr ""
+
+#: control/rs_window.py:41
 msgid "Upload files"
 msgstr "Bestanden uploaden"
 
-#: view/config_frame.py:8
-msgid ""
-"Source Description: \n"
-"description of the source, to be attached to the sourcedescription in a "
-"'describedby' relation"
+#: control/rs_window.py:50
+msgid "&File"
+msgstr "&Bestand"
+
+#: control/rs_window.py:54
+msgid "&View"
 msgstr ""
 
-#: view/config_frame.py:26 view/config_frame.py:33
+#: control/rs_window.py:77
+msgid "&Configuration"
+msgstr "&Configuratie"
+
+#: control/rs_window.py:79
+msgid "Upload"
+msgstr ""
+
+#: control/rs_window.py:81
+msgid "Statistics"
+msgstr "Statistieken"
+
+#: control/rs_window.py:82
+msgid "Manual Sets"
+msgstr "Hand. Sets"
+
+#: control/rs_window.py:83
+msgid "Rule-based Sets"
+msgstr "Autom. sets"
+
+#: i18n.py:22 view/config_frame.py:34 view/config_frame.py:36
+#: view/config_frame.py:42 view/config_frame.py:99
 msgid "browse"
 msgstr "Bladeren..."
 
-#: view/config_frame.py:28
+#: view/config_frame.py:10
+msgid ""
+"Source Description: \n"
+"description of the institute publishing the resources and the content of the "
+"resources in this set (resourcelist), to be attached to the "
+"sourcedescription in a 'describedby' relation"
+msgstr ""
+
+#: view/config_frame.py:22
+msgid "Interface Language"
+msgstr "Interface Taal"
+
+#: view/config_frame.py:38
 msgid "resource dir:"
 msgstr "resources folder:"
 
-#: view/config_frame.py:35
+#: view/config_frame.py:44
 msgid "resync dir:"
 msgstr "resync folder:"
 
-#: view/config_frame.py:46
+#: view/config_frame.py:61
 msgid "sourcedesc:"
 msgstr ""
 
-#: view/config_frame.py:50
+#: view/config_frame.py:64
 msgid "The url domain to be used in the resync files"
 msgstr "Het URL domein dat gebruikt wordt in de resync bestanden"
 
-#: view/config_frame.py:51
+#: view/config_frame.py:65
 msgid "URL prefix:"
+msgstr ""
+
+#: view/config_frame.py:82
+msgid "Resource Directory"
+msgstr ""
+
+#: view/config_frame.py:89
+msgid "Resync Directory"
 msgstr ""
