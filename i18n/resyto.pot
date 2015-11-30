@@ -1,0 +1,115 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-26 16:41+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: control/rs_window.py:29
+msgid "&Exit"
+msgstr ""
+
+#: control/rs_window.py:31
+msgid "Exit application"
+msgstr ""
+
+#: control/rs_window.py:34
+msgid "&Configure"
+msgstr ""
+
+#: control/rs_window.py:36
+msgid "Configure rsync"
+msgstr ""
+
+#: control/rs_window.py:39
+msgid "&Upload"
+msgstr ""
+
+#: control/rs_window.py:41
+msgid "Upload files"
+msgstr ""
+
+#: control/rs_window.py:50
+msgid "&File"
+msgstr ""
+
+#: control/rs_window.py:54
+msgid "&View"
+msgstr ""
+
+#: control/rs_window.py:77
+msgid "&Configuration"
+msgstr ""
+
+#: control/rs_window.py:79
+msgid "Upload"
+msgstr ""
+
+#: control/rs_window.py:81
+msgid "Statistics"
+msgstr ""
+
+#: control/rs_window.py:82
+msgid "Manual Sets"
+msgstr ""
+
+#: control/rs_window.py:83
+msgid "Rule-based Sets"
+msgstr ""
+
+#: i18n.py:22 view/config_frame.py:34 view/config_frame.py:36
+#: view/config_frame.py:42 view/config_frame.py:99
+msgid "browse"
+msgstr ""
+
+#: view/config_frame.py:10
+msgid ""
+"Source Description: \n"
+"description of the institute publishing the resources and the content of the "
+"resources in this set (resourcelist), to be attached to the "
+"sourcedescription in a 'describedby' relation"
+msgstr ""
+
+#: view/config_frame.py:22
+msgid "Interface Language"
+msgstr ""
+
+#: view/config_frame.py:38
+msgid "resource dir:"
+msgstr ""
+
+#: view/config_frame.py:44
+msgid "resync dir:"
+msgstr ""
+
+#: view/config_frame.py:61
+msgid "sourcedesc:"
+msgstr ""
+
+#: view/config_frame.py:64
+msgid "The url domain to be used in the resync files"
+msgstr ""
+
+#: view/config_frame.py:65
+msgid "URL prefix:"
+msgstr ""
+
+#: view/config_frame.py:82
+msgid "Resource Directory"
+msgstr ""
+
+#: view/config_frame.py:89
+msgid "Resync Directory"
+msgstr ""

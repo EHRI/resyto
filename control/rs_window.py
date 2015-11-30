@@ -10,6 +10,7 @@ class RsMainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.menubar = self.menuBar()
         self.create_menu()
 
         self.tabframe = TabbedFrame(self)
@@ -28,17 +29,17 @@ class RsMainWindow(QMainWindow):
 
     def create_menu(self):
 
-        exit_action = QAction("&Exit", self)
+        exit_action = QAction(_("&Exit"), self)
         exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip("Exit application")
+        exit_action.setStatusTip(_("Exit application"))
         exit_action.triggered.connect(qApp.quit)
 
-        show_configure_action = QAction("&Configure", self)
+        show_configure_action = QAction(_("&Configure"), self)
         show_configure_action.setShortcut("Ctrl+C")
         show_configure_action.setStatusTip("Configure rsync")
         show_configure_action.triggered.connect(lambda: self.on_tab_choice(0))
 
-        show_upload_action = QAction("&Upload", self)
+        show_upload_action = QAction(_("&Upload"), self)
         show_upload_action.setShortcut("Ctrl+U")
         show_upload_action.setStatusTip("Upload files")
         show_upload_action.triggered.connect(lambda: self.on_tab_choice(1))
@@ -58,7 +59,7 @@ class RsMainWindow(QMainWindow):
         show_rule_based_sets_action.setStatusTip("Rule-based Sets")
         show_rule_based_sets_action.triggered.connect(lambda: self.on_tab_choice(4))
 
-        self.menubar = self.menuBar()
+
         self.menubar.setNativeMenuBar(True)
 
         self.fileMenu = self.menubar.addMenu("&File")
@@ -86,7 +87,9 @@ class TabbedFrame(QTabWidget):
         self.parent = parent
         self.currentChanged.connect(self.__tabchanged)
         self.previndex = -1
-        self.initUI()
+        self.configframe = ConfigFrame(self)
+        self.uploadframe = UploadFrame(self)
+        self.init_ui()
 
     def __tabchanged(self, index):
         if self.previndex > -1:
@@ -94,15 +97,12 @@ class TabbedFrame(QTabWidget):
         self.previndex = index
         self.parent.set_tab_menu_enabled(index)
 
+    def init_ui(self):
+        self.addTab(self.configframe, _("&Configuration"))
 
-    def initUI(self):
-        self.configframe = ConfigFrame(self)
-        self.addTab(self.configframe, "&Configuration")
+        self.addTab(self.uploadframe, _("Upload"))
 
-        self.uploadframe = UploadFrame(self)
-        self.addTab(self.uploadframe, "Upload")
-
-        self.addTab(QWidget(), "Statistics")
-        self.addTab(QWidget(), "Manual Sets")
-        self.addTab(QWidget(), "Rule-based Sets")
+        self.addTab(QWidget(), _("Statistics"))
+        self.addTab(QWidget(), _("Manual Sets"))
+        self.addTab(QWidget(), _("Rule-based Sets"))
 
