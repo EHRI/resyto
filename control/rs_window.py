@@ -41,31 +41,31 @@ class RsMainWindow(QMainWindow):
 
         show_upload_action = QAction(_("&Upload"), self)
         show_upload_action.setShortcut("Ctrl+U")
-        show_upload_action.setStatusTip("Upload files")
+        show_upload_action.setStatusTip(_("Upload files"))
         show_upload_action.triggered.connect(lambda: self.on_tab_choice(1))
 
-        show_statistics_action = QAction("&Statistics", self)
+        show_statistics_action = QAction(_("&Statistics"), self)
         show_statistics_action.setShortcut("Ctrl+S")
-        show_statistics_action.setStatusTip("Statistics")
+        show_statistics_action.setStatusTip(_("Statistics"))
         show_statistics_action.triggered.connect(lambda: self.on_tab_choice(2))
 
-        show_man_sets_action = QAction("&Manual Sets", self)
+        show_man_sets_action = QAction(_("&Manual Sets"), self)
         show_man_sets_action.setShortcut("Ctrl+M")
-        show_man_sets_action.setStatusTip("Manual Sets")
+        show_man_sets_action.setStatusTip(_("Manual Sets"))
         show_man_sets_action.triggered.connect(lambda: self.on_tab_choice(3))
 
-        show_rule_based_sets_action = QAction("&Rule-based Sets", self)
+        show_rule_based_sets_action = QAction(_("&Rule-based Sets"), self)
         show_rule_based_sets_action.setShortcut("Ctrl+R")
-        show_rule_based_sets_action.setStatusTip("Rule-based Sets")
+        show_rule_based_sets_action.setStatusTip(_("Rule-based Sets"))
         show_rule_based_sets_action.triggered.connect(lambda: self.on_tab_choice(4))
 
 
         self.menubar.setNativeMenuBar(True)
 
-        self.fileMenu = self.menubar.addMenu("&File")
+        self.fileMenu = self.menubar.addMenu(_("&File"))
         self.fileMenu.addAction(exit_action)             # on mac under [application] > Quit [application]
 
-        self.viewMenu = self.menubar.addMenu("&View")
+        self.viewMenu = self.menubar.addMenu(_("&View"))
         self.viewMenu.addAction(show_configure_action)   # on mac under [application] > Preverences
         self.viewMenu.addAction(show_upload_action)
         self.viewMenu.addAction(show_statistics_action)

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-11-26 16:42+0100\n"
-"PO-Revision-Date: 2015-11-26 16:43+0100\n"
+"PO-Revision-Date: 2015-11-30 16:50+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: nl_NL\n"
@@ -48,7 +48,7 @@ msgstr "&Bestand"
 
 #: control/rs_window.py:54
 msgid "&View"
-msgstr ""
+msgstr "B&eeld"
 
 #: control/rs_window.py:77
 msgid "&Configuration"

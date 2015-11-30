@@ -14,8 +14,8 @@ class RsApplication(QApplication):
 
     def __init__(self, args):
         super().__init__(args)
-        # TODO: get the language from the config file
-        i18n.set_language("nl-NL")
+        language = Configuration().get_settings_language()
+        i18n.set_language(language)
 
         main_window = RsMainWindow()
 

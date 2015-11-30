@@ -65,7 +65,7 @@ class Configuration(object):
                                      "sourcedesk": "http://www.example.com/rs/sourcedescription.xml",
                                      "urlprefix": "http://www.example.com/"
                                      },
-                          'section2': {'keyA': 'valueA',
+                          "settings": {"language": "en-US",
                                        'keyB': 'valueB',
                                        'keyC': 'valueC'},
                           "testing": {"foo": "x",
@@ -127,3 +127,9 @@ class Configuration(object):
 
     def set_cfg_urlprefix(self, urlprefix):
         self.parser["config"]["urlprefix"] = urlprefix
+
+    def get_settings_language(self):
+        return self.parser.get("settings", "language", fallback="en-US")
+
+    def set_settings_language(self, language):
+        self.parser["settings"]["language"] = language

@@ -55,6 +55,16 @@ class TestConfiguration(unittest.TestCase):
 
         assert config1.get_cfg_resource_dir() == "foo/bar/baz"
 
+    def test04_set_get_language(self):
+        print("\n>>> Testing language")
+        Configuration._set_configuration_filename("rsync_test.cfg")
+        config1 = Configuration()
+
+        print("current language: " + config1.get_settings_language())
+        config1.set_settings_language("foo-BR")
+        print("now the language is: " + config1.get_settings_language())
+
+
     def test99_cleanup(self):
         print("\n>>> Cleaning up")
         Configuration._set_configuration_filename("rsync_test.cfg")
