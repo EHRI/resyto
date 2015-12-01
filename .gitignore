@@ -61,5 +61,5 @@ target/
 .DS_Store
 .idea/
 .idea/dictionaries/*
-resync/
+resync
 
