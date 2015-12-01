@@ -12,6 +12,7 @@ class ConfigFrame(QFrame):
         super().__init__(parent)
         self.config = Configuration()
         self.le_resourcedir = QLineEdit(self.config.get_cfg_resource_dir())
+
         self.le_resyncdir = QLineEdit(self.config.get_cfg_resync_dir())
         self.le_sourcedesc = QLineEdit(self.config.get_cfg_sourcedesc())
         self.le_urlprefix = QLineEdit(self.config.get_cfg_urlprefix())

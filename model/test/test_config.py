@@ -40,7 +40,7 @@ class TestConfiguration(unittest.TestCase):
 
         assert config1.get_cfg_resource_dir() == os.path.expanduser("~")
         config1.set_cfg_resource_dir("foo/bar/baz")
-        assert config1.get_cfg_resource_dir() == "foo/bar/baz"
+        assert config2.get_cfg_resource_dir() == "foo/bar/baz"
 
         config2.persist()
         config1 = None
@@ -52,8 +52,10 @@ class TestConfiguration(unittest.TestCase):
         print("\n>>> Testing read")
         Configuration._set_configuration_filename("rsync_test.cfg")
         config1 = Configuration()
+        config2 = Configuration()
 
         assert config1.get_cfg_resource_dir() == "foo/bar/baz"
+        assert config2.get_cfg_resource_dir() == "foo/bar/baz"
 
     def test04_set_get_language(self):
         print("\n>>> Testing language")

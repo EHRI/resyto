@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import urllib
 from PyQt5.QtWidgets import QFrame, QPushButton, QGridLayout, QHBoxLayout, QLabel, QFileDialog, QTextEdit
 from view.config_frame import Configuration
 from resync_publisher.ehri_client import ResourceSyncPublisherClient
@@ -10,6 +11,7 @@ from resync.resource_list_builder import ResourceListBuilder
 class UploadFrame(QFrame):
 
     def get_existing_resync_file(self, resync_file):
+        # get the existing resync_file as file URI.
         return 'file://'+self.config.get_cfg_resync_dir()+'/'+resync_file
 
     def __init__(self, parent):
@@ -48,10 +50,10 @@ class UploadFrame(QFrame):
         grid_right.addWidget(pb_changelist, 3, 1)
 
         # could be part of tooltip instead?
-        lb_r_list = QLabel(self.get_existing_resync_file('resourcelist.xml'))
-        lb_c_list = QLabel(self.get_existing_resync_file('changelist.xml'))
-        grid_right.addWidget(lb_r_list, 4, 1)
-        grid_right.addWidget(lb_c_list, 5, 1)
+        self.lb_r_list = QLabel(self.get_existing_resync_file('resourcelist.xml'))
+        self.lb_c_list = QLabel(self.get_existing_resync_file('changelist.xml'))
+        grid_right.addWidget(self.lb_r_list, 4, 1)
+        grid_right.addWidget(self.lb_c_list, 5, 1)
 
         pb_cancel = QPushButton(_("cancel"))
         grid_right.addWidget(pb_cancel, 6, 1)
@@ -61,6 +63,11 @@ class UploadFrame(QFrame):
         vert.addStretch(1)
 
         self.setLayout(vert)
+
+    def show(self):
+        # dynamically reflect current state of config
+        self.lb_r_list.setText(self.get_existing_resync_file('resourcelist.xml'))
+        self.lb_c_list.setText(self.get_existing_resync_file('changelist.xml'))
 
     def resync_change_list(self):
         c = ResourceSyncPublisherClient(checksum=True)
