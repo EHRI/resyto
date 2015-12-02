@@ -11,11 +11,11 @@ class ConfigFrame(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.config = Configuration()
-        self.le_resourcedir = QLineEdit(self.config.get_cfg_resource_dir())
+        self.le_resourcedir = QLineEdit(self.config.cfg_resource_dir())
 
-        self.le_resyncdir = QLineEdit(self.config.get_cfg_resync_dir())
-        self.le_sourcedesc = QLineEdit(self.config.get_cfg_sourcedesc())
-        self.le_urlprefix = QLineEdit(self.config.get_cfg_urlprefix())
+        self.le_resyncdir = QLineEdit(self.config.cfg_resync_dir())
+        self.le_sourcedesc = QLineEdit(self.config.cfg_sourcedesc())
+        self.le_urlprefix = QLineEdit(self.config.cfg_urlprefix())
         # self.language_choice = QLabel(_("Interface Language"), self)
         self.init_ui()
 
@@ -94,6 +94,6 @@ class ConfigFrame(QFrame):
     def hide(self):
         self.config.set_cfg_resource_dir(self.le_resourcedir.text())
         self.config.set_cfg_resync_dir(self.le_resyncdir.text())
-        self.config.set_cfg_source(self.le_sourcedesc.text())
+        self.config.set_cfg_sourcedesc(self.le_sourcedesc.text())
         self.config.set_cfg_urlprefix(self.le_urlprefix.text())
         self.config.persist()

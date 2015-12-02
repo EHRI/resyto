@@ -14,7 +14,7 @@ class RsApplication(QApplication):
 
     def __init__(self, args):
         super().__init__(args)
-        language = Configuration().get_settings_language()
+        language = Configuration().settings_language()
         i18n.set_language(language)
 
         main_window = RsMainWindow()

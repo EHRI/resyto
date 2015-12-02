@@ -68,7 +68,7 @@ class Configuration(object):
                           "settings": {"language": "en-US",
                                        'keyB': 'valueB',
                                        'keyC': 'valueC'},
-                          "testing": {"foo": "x",
+                          "test": {"foo": "x",
                                       "bar": "y"}
                           })
         parser.write(f)
@@ -104,32 +104,48 @@ class Configuration(object):
         f.close()
         print("Persisted " + self.config_file)
 
-    def get_cfg_resource_dir(self):
+    def cfg_resource_dir(self):
         return self.parser.get("config", "resource_dir", fallback=os.path.expanduser("~"))
 
     def set_cfg_resource_dir(self, resource_dir):
         self.parser["config"]["resource_dir"] = resource_dir
 
-    def get_cfg_resync_dir(self):
+    def cfg_resync_dir(self):
         return self.parser.get("config", "resync_dir", fallback=os.path.expanduser("~"))
 
     def set_cfg_resync_dir(self, resync_dir):
         self.parser["config"]["resync_dir"] = resync_dir
 
-    def get_cfg_sourcedesc(self):
+    def cfg_sourcedesc(self):
         return self.parser.get("config", "sourcedesc", fallback="http://www.example.com/rs/sourcedescription.xml")
 
-    def set_cfg_source(self, sourcedesc):
+    def set_cfg_sourcedesc(self, sourcedesc):
         self.parser["config"]["sourcedesc"] = sourcedesc
 
-    def get_cfg_urlprefix(self):
+    def cfg_urlprefix(self):
         return self.parser.get("config", "urlprefix", fallback="http://www.example.com/")
 
     def set_cfg_urlprefix(self, urlprefix):
         self.parser["config"]["urlprefix"] = urlprefix
 
-    def get_settings_language(self):
+    def settings_language(self):
         return self.parser.get("settings", "language", fallback="en-US")
 
     def set_settings_language(self, language):
         self.parser["settings"]["language"] = language
+
+    def explorer_width(self):
+        return int(self.parser.get("explorer","width", fallback="630"))
+
+    def set_explorer_width(self, width):
+        if not self.parser.has_section("explorer"):
+            self.parser.add_section("explorer")
+        self.parser.set("explorer", "width", str(width))
+
+    def explorer_height(self):
+        return int(self.parser.get("explorer","height", fallback="400"))
+
+    def set_explorer_height(self, height):
+        if not self.parser.has_section("explorer"):
+            self.parser.add_section("explorer")
+        self.parser.set("explorer", "height", str(height))

@@ -38,9 +38,9 @@ class TestConfiguration(unittest.TestCase):
         else:
             assert path1 == os.path.expanduser("~") + "/rsync"
 
-        assert config1.get_cfg_resource_dir() == os.path.expanduser("~")
+        assert config1.cfg_resource_dir() == os.path.expanduser("~")
         config1.set_cfg_resource_dir("foo/bar/baz")
-        assert config2.get_cfg_resource_dir() == "foo/bar/baz"
+        assert config2.cfg_resource_dir() == "foo/bar/baz"
 
         config2.persist()
         config1 = None
@@ -54,17 +54,17 @@ class TestConfiguration(unittest.TestCase):
         config1 = Configuration()
         config2 = Configuration()
 
-        assert config1.get_cfg_resource_dir() == "foo/bar/baz"
-        assert config2.get_cfg_resource_dir() == "foo/bar/baz"
+        assert config1.cfg_resource_dir() == "foo/bar/baz"
+        assert config2.cfg_resource_dir() == "foo/bar/baz"
 
     def test04_set_get_language(self):
         print("\n>>> Testing language")
         Configuration._set_configuration_filename("rsync_test.cfg")
         config1 = Configuration()
 
-        print("current language: " + config1.get_settings_language())
+        print("current language: " + config1.settings_language())
         config1.set_settings_language("foo-BR")
-        print("now the language is: " + config1.get_settings_language())
+        print("now the language is: " + config1.settings_language())
 
 
     def test99_cleanup(self):

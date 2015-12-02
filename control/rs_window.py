@@ -94,7 +94,8 @@ class TabbedFrame(QTabWidget):
     def __tabchanged(self, index):
         if self.previndex > -1:
             self.widget(self.previndex).hide()
-            self.widget(index).show()
+
+        self.widget(index).show()
         self.previndex = index
         self.parent.set_tab_menu_enabled(index)
 
