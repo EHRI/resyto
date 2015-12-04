@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+
+
 from pathlib import PurePath
 from PyQt5.QtWidgets import QFrame, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QDialog, QFileDialog, \
     QFileSystemModel, QTreeView, QAbstractItemView, QTextEdit
@@ -23,7 +25,6 @@ class UploadFrame(QFrame):
         self.config = Configuration()
         self.textEdit = QTextEdit()
         self.init_ui()
-        self.explorer = Explorer(self)
         self.data = ''
 
     def init_ui(self):
@@ -74,6 +75,7 @@ class UploadFrame(QFrame):
         # dynamically reflect current state of config
         self.lb_r_list.setText(self.get_existing_resync_file('resourcelist.xml'))
         self.lb_c_list.setText(self.get_existing_resync_file('changelist.xml'))
+        self.explorer = Explorer(self)
 
     def show_dialog(self):
         filenames = QFileDialog.getOpenFileNames(
@@ -91,7 +93,7 @@ class UploadFrame(QFrame):
         result = self.explorer.exec_()
         if result:
             print(result)
-            filenames = self.explorer.paths()
+            filenames = self.explorer.selected_file_set()
             self.data = ",".join(filenames)
             self.textEdit.setText(str(len(filenames)) + " resources")
 
@@ -110,38 +112,76 @@ class UploadFrame(QFrame):
         self.textEdit.setText(rl.as_xml())
 
 
+# so much for duck typing..
+class FilenameFilter(object):
+
+    def accept(self, filename):
+        return not filename.startswith('.')
+
+
 class Explorer(QDialog):
 
-    def __init__(self, parent):
+    def __init__(self, parent, window_title=_("Select resources"),
+                 subtitle=_("Select files and/or folders to include")):
         super().__init__(parent)
         self.setModal(True)
         self.setSizeGripEnabled(True)
+        self.setWindowTitle(window_title)
+        self.subtitle = subtitle
+        self.file_set = set()
         self.config = Configuration()
-        self.init_ui()
+        self.__init_ui__()
+        self.filename_filter = FilenameFilter()
         #self.show()
 
-    def init_ui(self):
+    def __init_ui__(self):
         # layout
         vert = QVBoxLayout(self)
         vert.setContentsMargins(0, 0, 0, 0)
 
-        p_top = QHBoxLayout()
+        resource_dir = self.config.cfg_resource_dir()
+
+        p_top = QVBoxLayout()
+        lb_subtitle = QLabel(self.subtitle)
+        lb_subtitle.setContentsMargins(10, 10, 10, 0)
+        p_top.addWidget(lb_subtitle)
+
         self.model = QFileSystemModel()
-        self.model.setRootPath(self.config.cfg_resource_dir())
+        self.model.setRootPath(resource_dir)
 
         self.view = QTreeView()
         self.view.setModel(self.model)
         self.view.setRootIndex(self.model.index(self.model.rootPath()))
         self.view.setAlternatingRowColors(True)
         self.view.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.view.selectionModel().selectionChanged.connect(self.selection_changed)
         p_top.addWidget(self.view)
 
+        p_info = QHBoxLayout()
+        lb_resource = QLabel(_("resource dir") + ": " + resource_dir)
+        lb_resource.setContentsMargins(10, 0, 10, 0)
+
+        self.lb_selection_count = QLabel(str(self.selected_file_count()) + " " + _("resources selected"))
+        self.lb_selection_count.setContentsMargins(10, 0, 10, 0)
+
+        p_info.addWidget(self.lb_selection_count)
+        p_info.addStretch(1)
+        p_info.addWidget(lb_resource)
+
+        p_top.addLayout(p_info)
+
         p_bottom = QHBoxLayout()
+
+        self.pb_toggle_select = QPushButton(_("Deselect all"))
+        self.pb_toggle_select.clicked.connect(self.toggle_select)
+        self.pb_toggle_select.setEnabled(self.selected_file_count() > 0)
+        p_bottom.addWidget(self.pb_toggle_select)
+
         p_bottom.addStretch(1)
-        pb_ok = QPushButton(_("OK"))
-        pb_ok.setAutoDefault(True)
-        pb_ok.clicked.connect(self.accept)
-        p_bottom.addWidget(pb_ok)
+        self.pb_ok = QPushButton(_("OK"))
+        self.pb_ok.setAutoDefault(True)
+        self.pb_ok.clicked.connect(self.accept)
+        p_bottom.addWidget(self.pb_ok)
 
         pb_cancel = QPushButton(_("Cancel"))
         pb_cancel.clicked.connect(self.reject)
@@ -158,32 +198,74 @@ class Explorer(QDialog):
         self.view.setColumnWidth(2, width/6)
         self.view.setColumnWidth(3, width/6)
 
-    def paths(self):
-        indexes = self.view.selectedIndexes()
-        s = set()
-        # there are multiple indexes pointing to the same file...
-        for index in indexes:
-            s.add(self.model.filePath(index))
-        li = list()
-        for path in s:
-            if os.path.isdir(path):
-                #print("isDir", path)
-                for root, directories, filenames in os.walk(path):
-                    for filename in filenames:
-                        if not filename.startswith('.'):
-                            li.append(os.path.join(root, filename))
-            elif os.path.isfile(path):
-                #print("isFile", path)
-                li.append(path)
-            else:
-                print("isUnknownThing", path)
-
-        return li
-
-    def closeEvent(self, QCloseEvent):
+    def __persist__(self):
+        # persist properties of the explorer
         self.config.set_explorer_width(self.width())
         self.config.set_explorer_height(self.height())
         self.config.persist()
+
+    def __compute_filenames__(self, item_selection):
+        # item_selection: a QItemSelection
+        # return corresponding absolute filenames as a set, including filenames in underlying folders
+        s = set()
+        for index in item_selection.indexes():
+            print(index)
+            # we have an index for each column in the model
+            if index.column() == 0:
+                path = index.model().filePath(index)
+                if os.path.isdir(path):
+                    for root, directories, filenames in os.walk(path):
+                        for filename in filenames:
+                            if self.filename_filter.accept(filename):
+                                s.add(os.path.join(root, filename))
+                elif os.path.isfile(path):
+                    s.add(path)
+                else:
+                    print("isUnknownThing", path)
+        return s
+
+    def showEvent(self, QShowEvent):
+        # print("showing: ")
+        #self.pb_ok.setFocus()
+        pass
+
+    def set_filename_filter(self, filename_filter):
+        # set the FilenameFilter
+        self.filename_filter = filename_filter
+
+    def selected_file_count(self):
+        return len(self.file_set)
+
+    def selected_file_set(self):
+        return frozenset(self.file_set)
+
+    def selection_changed(self, selected, deselected):
+        # # selected, deselected: PyQt5.QtCore.QItemSelection
+        # print("selected")
+        # for index in selected.indexes():
+        #     # index: PyQt5.QtCore.QModelIndex.
+        #     #print(index.row(), index.column(), index.data())
+        #     if index.column() == 0:
+        #         print(self.model.filePath(index))
+        #         self.view.expand(index)
+        #     #print(index.model(), self.model) # same
+        #     #print()
+        
+        selected_filenames = self.__compute_filenames__(selected)
+        self.file_set.update(selected_filenames)
+        deselected_filenames = self.__compute_filenames__(deselected)
+        self.file_set.difference_update(deselected_filenames)
+
+        self.pb_toggle_select.setEnabled(self.selected_file_count() > 0)
+        self.lb_selection_count.setText(str(self.selected_file_count()) + " " + _("resources selected"))
+
+    def toggle_select(self):
+        self.view.selectionModel().clear()
+
+    def hideEvent(self, QHideEvent):
+        self.__persist__()
+
+
 
 
 
