@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import QMainWindow, QAction, QActionGroup, qApp, QTabWidget, QWidget
 
 from view.config_frame import ConfigFrame
-from view.upload_frame import UploadFrame
+from view.export_frame import ExportFrame
 
 
 class RsMainWindow(QMainWindow):
@@ -39,10 +39,10 @@ class RsMainWindow(QMainWindow):
         show_configure_action.setStatusTip("Configure rsync")
         show_configure_action.triggered.connect(lambda: self.on_tab_choice(0))
 
-        show_upload_action = QAction(_("&Upload"), self)
-        show_upload_action.setShortcut("Ctrl+U")
-        show_upload_action.setStatusTip(_("Upload files"))
-        show_upload_action.triggered.connect(lambda: self.on_tab_choice(1))
+        show_export_action = QAction(_("&Export"), self)
+        show_export_action.setShortcut("Ctrl+E")
+        show_export_action.setStatusTip(_("Export files"))
+        show_export_action.triggered.connect(lambda: self.on_tab_choice(1))
 
         show_statistics_action = QAction(_("&Statistics"), self)
         show_statistics_action.setShortcut("Ctrl+S")
@@ -67,17 +67,21 @@ class RsMainWindow(QMainWindow):
 
         self.viewMenu = self.menubar.addMenu(_("&View"))
         self.viewMenu.addAction(show_configure_action)   # on mac under [application] > Preverences
-        self.viewMenu.addAction(show_upload_action)
+        self.viewMenu.addAction(show_export_action)
         self.viewMenu.addAction(show_statistics_action)
         self.viewMenu.addAction(show_man_sets_action)
         self.viewMenu.addAction(show_rule_based_sets_action)
 
         self.tab_actions = list()
         self.tab_actions.append(show_configure_action)      # 0
-        self.tab_actions.append(show_upload_action)         # 1
+        self.tab_actions.append(show_export_action)         # 1
         self.tab_actions.append(show_statistics_action)     # 2
         self.tab_actions.append(show_man_sets_action)       # 3
         self.tab_actions.append(show_rule_based_sets_action) # 4
+
+    def close(self):
+        #print("window closing")
+        self.tabframe.close()
 
 
 class TabbedFrame(QTabWidget):
@@ -88,7 +92,7 @@ class TabbedFrame(QTabWidget):
         self.currentChanged.connect(self.__tabchanged)
         self.previndex = -1
         self.configframe = ConfigFrame(self)
-        self.uploadframe = UploadFrame(self)
+        self.exportframe = ExportFrame(self)
         self.init_ui()
 
     def __tabchanged(self, index):
@@ -102,9 +106,13 @@ class TabbedFrame(QTabWidget):
     def init_ui(self):
         self.addTab(self.configframe, _("&Configuration"))
 
-        self.addTab(self.uploadframe, _("Upload"))
+        self.addTab(self.exportframe, _("&Export"))
 
         self.addTab(QWidget(), _("Statistics"))
         self.addTab(QWidget(), _("Manual Sets"))
         self.addTab(QWidget(), _("Rule-based Sets"))
+
+    def close(self):
+        #print("tabframe closing")
+        self.currentWidget().close()
 

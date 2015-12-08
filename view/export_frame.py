@@ -7,12 +7,17 @@ import os
 from pathlib import PurePath
 from PyQt5.QtWidgets import QFrame, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QDialog, QFileDialog, \
     QFileSystemModel, QTreeView, QAbstractItemView, QTextEdit
+from PyQt5.QtCore import QRect, QItemSelectionModel, QItemSelectionModel
 from view.config_frame import Configuration
 from resync_publisher.ehri_client import ResourceSyncPublisherClient
 from resync.resource_list_builder import ResourceListBuilder
 
+CHANGELIST_XML = "changelist.xml"
 
-class UploadFrame(QFrame):
+RESOURCELIST_XML = "resourcelist.xml"
+
+
+class ExportFrame(QFrame):
 
     def get_existing_resync_file(self, resync_file):
         # get the existing resync_file as file URI.
@@ -40,7 +45,7 @@ class UploadFrame(QFrame):
         grid_right = QGridLayout()
         grid_right.setColumnMinimumWidth(1, 40)
 
-        pb_browse = QPushButton(_("browse"))
+        pb_browse = QPushButton(_("Select files..."))
         # pb_browse.clicked.connect(self.show_dialog)
         pb_browse.clicked.connect(self.show_explorer)
         grid_right.addWidget(pb_browse, 1, 1)
@@ -57,8 +62,8 @@ class UploadFrame(QFrame):
         grid_right.addWidget(pb_changelist, 3, 1)
 
         # could be part of tooltip instead?
-        self.lb_r_list = QLabel(self.get_existing_resync_file('resourcelist.xml'))
-        self.lb_c_list = QLabel(self.get_existing_resync_file('changelist.xml'))
+        self.lb_r_list = QLabel(self.get_existing_resync_file(RESOURCELIST_XML))
+        self.lb_c_list = QLabel(self.get_existing_resync_file(CHANGELIST_XML))
         grid_right.addWidget(self.lb_r_list, 4, 1)
         grid_right.addWidget(self.lb_c_list, 5, 1)
 
@@ -73,11 +78,12 @@ class UploadFrame(QFrame):
 
     def show(self):
         # dynamically reflect current state of config
-        self.lb_r_list.setText(self.get_existing_resync_file('resourcelist.xml'))
-        self.lb_c_list.setText(self.get_existing_resync_file('changelist.xml'))
+        self.lb_r_list.setText(self.get_existing_resync_file(RESOURCELIST_XML))
+        self.lb_c_list.setText(self.get_existing_resync_file(CHANGELIST_XML))
         self.explorer = Explorer(self)
 
     def show_dialog(self):
+        # See: show_explorer
         filenames = QFileDialog.getOpenFileNames(
                         self,
                         _("Select one or more files to open"),
@@ -92,7 +98,6 @@ class UploadFrame(QFrame):
     def show_explorer(self):
         result = self.explorer.exec_()
         if result:
-            print(result)
             filenames = self.explorer.selected_file_set()
             self.data = ",".join(filenames)
             self.textEdit.setText(str(len(filenames)) + " resources")
@@ -102,14 +107,18 @@ class UploadFrame(QFrame):
         args = [self.config.cfg_urlprefix(), self.config.cfg_resource_dir()]
         c.set_mappings(args)
         rl = c.build_resource_list(paths=self.data)
-        self.textEdit.setText(rl.as_xml())
+        rl.write(os.path.join(self.config.cfg_resync_dir(), RESOURCELIST_XML))
+        #print(rl.as_xml())
+        #self.textEdit.setText(rl.as_xml())
 
     def resync_change_list(self):
         c = ResourceSyncPublisherClient(checksum=True)
         args = [self.config.cfg_urlprefix(), self.config.cfg_resource_dir()]
         c.set_mappings(args)
-        rl = c.calculate_changelist(paths=self.data, resource_sitemap=self.get_existing_resync_file('resourcelist.xml'), changelist_sitemap=self.get_existing_resync_file('changelist.xml'))
-        self.textEdit.setText(rl.as_xml())
+        rl = c.calculate_changelist(paths=self.data, resource_sitemap=self.get_existing_resync_file(RESOURCELIST_XML),
+                                    changelist_sitemap=self.get_existing_resync_file(CHANGELIST_XML))
+        rl.write(os.path.join(self.config.cfg_resync_dir(), CHANGELIST_XML))
+        #self.textEdit.setText(rl.as_xml())
 
 
 # so much for duck typing..
@@ -155,6 +164,8 @@ class Explorer(QDialog):
         self.view.setAlternatingRowColors(True)
         self.view.setSelectionMode(QAbstractItemView.MultiSelection)
         self.view.selectionModel().selectionChanged.connect(self.selection_changed)
+        self.view.collapsed.connect(self.item_collapsed)
+        self.view.expanded.connect(self.item_expanded)
         p_top.addWidget(self.view)
 
         p_info = QHBoxLayout()
@@ -172,10 +183,10 @@ class Explorer(QDialog):
 
         p_bottom = QHBoxLayout()
 
-        self.pb_toggle_select = QPushButton(_("Deselect all"))
-        self.pb_toggle_select.clicked.connect(self.toggle_select)
-        self.pb_toggle_select.setEnabled(self.selected_file_count() > 0)
-        p_bottom.addWidget(self.pb_toggle_select)
+        self.pb_deselect = QPushButton(_("Deselect all"))
+        self.pb_deselect.clicked.connect(self.pb_deselect_clicked)
+        self.pb_deselect.setEnabled(self.selected_file_count() > 0)
+        p_bottom.addWidget(self.pb_deselect)
 
         p_bottom.addStretch(1)
         self.pb_ok = QPushButton(_("OK"))
@@ -209,7 +220,6 @@ class Explorer(QDialog):
         # return corresponding absolute filenames as a set, including filenames in underlying folders
         s = set()
         for index in item_selection.indexes():
-            print(index)
             # we have an index for each column in the model
             if index.column() == 0:
                 path = index.model().filePath(index)
@@ -240,26 +250,26 @@ class Explorer(QDialog):
         return frozenset(self.file_set)
 
     def selection_changed(self, selected, deselected):
-        # # selected, deselected: PyQt5.QtCore.QItemSelection
-        # print("selected")
-        # for index in selected.indexes():
-        #     # index: PyQt5.QtCore.QModelIndex.
-        #     #print(index.row(), index.column(), index.data())
-        #     if index.column() == 0:
-        #         print(self.model.filePath(index))
-        #         self.view.expand(index)
-        #     #print(index.model(), self.model) # same
-        #     #print()
-        
+        # selected, deselected: PyQt5.QtCore.QItemSelection
         selected_filenames = self.__compute_filenames__(selected)
         self.file_set.update(selected_filenames)
         deselected_filenames = self.__compute_filenames__(deselected)
         self.file_set.difference_update(deselected_filenames)
 
-        self.pb_toggle_select.setEnabled(self.selected_file_count() > 0)
+        self.pb_deselect.setEnabled(self.selected_file_count() > 0)
         self.lb_selection_count.setText(str(self.selected_file_count()) + " " + _("resources selected"))
 
-    def toggle_select(self):
+    def item_expanded(self, index):
+        # index: a QModelIndex
+        #print("expanded", index.row())
+        # show all child items selected/deselected in accordance with state of parent folder
+        pass
+
+    def item_collapsed(self, index):
+        #print("collapsed", index)
+        pass
+
+    def pb_deselect_clicked(self):
         self.view.selectionModel().clear()
 
     def hideEvent(self, QHideEvent):

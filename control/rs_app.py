@@ -17,7 +17,7 @@ class RsApplication(QApplication):
         language = Configuration().settings_language()
         i18n.set_language(language)
 
-        main_window = RsMainWindow()
+        self.main_window = RsMainWindow()
 
         print("starting")
         self.aboutToQuit.connect(self.__before_close__)
@@ -27,6 +27,7 @@ class RsApplication(QApplication):
     def __before_close__(self):
         # any final action?
         print("closing")
+        self.main_window.close()
 
 
 if __name__ == '__main__':

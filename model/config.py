@@ -128,6 +128,12 @@ class Configuration(object):
     def set_cfg_urlprefix(self, urlprefix):
         self.parser["config"]["urlprefix"] = urlprefix
 
+    def cfg_strategy(self):
+        return int(self.parser.get("config", "strategy", fallback="0"))
+
+    def set_cfg_strategy(self, id):
+        self.parser.set("config", "strategy", str(id))
+
     def settings_language(self):
         return self.parser.get("settings", "language", fallback="en-US")
 
