@@ -1,20 +1,29 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
+import os, operator, datetime, webbrowser, zipfile
 
 
 from pathlib import PurePath
 from PyQt5.QtWidgets import QFrame, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QDialog, QFileDialog, \
-    QFileSystemModel, QTreeView, QAbstractItemView, QTextEdit
-from PyQt5.QtCore import QRect, QItemSelectionModel, QItemSelectionModel
+    QFileSystemModel, QTreeView, QAbstractItemView, QTextEdit, QTableView, QAbstractScrollArea, QAbstractScrollArea, \
+    QSplitter, QSizePolicy, QMessageBox
+from PyQt5.QtCore import QRect, QItemSelectionModel, QItemSelectionModel, QAbstractTableModel, Qt, pyqtSignal, QDateTime
+from PyQt5.QtGui import QFont, QFont
+from signal import *
 from view.config_frame import Configuration
 from resync_publisher.ehri_client import ResourceSyncPublisherClient
-from resync.resource_list_builder import ResourceListBuilder
+from resync.resource_list_builder import ResourceListBuilder, Resource
 
 CHANGELIST_XML = "changelist.xml"
-
 RESOURCELIST_XML = "resourcelist.xml"
+RESOURCESYNC_ZIP = "resourcesync.zip"
+
+def file_details(s):
+    l = list()
+    for path in s:
+        l.append([path, os.path.basename(path), os.path.getsize(path), os.path.getmtime(path)])
+    return l
 
 
 class ExportFrame(QFrame):
@@ -28,97 +37,266 @@ class ExportFrame(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.config = Configuration()
-        self.textEdit = QTextEdit()
-        self.init_ui()
+
         self.data = ''
 
-    def init_ui(self):
-        # layout
-        vert = QHBoxLayout(self)
-        grid_left = QGridLayout()
-        grid_left.setColumnMinimumWidth(1, 180)
+        # left part of frame
+        header_left = [_("Relative Path"), _("Name"), _("Size"), _("Date Modified")]
+        self.file_model = FileTableModel(self, header_left, [])
 
-        grid_left.addWidget(QLabel(_("browse & upload")), 1, 1,)
-        self.textEdit.setMinimumWidth(80)
-        grid_left.addWidget(self.textEdit, 2, 1)
+        self.file_view = QTableView()
+        self.file_view.setModel(self.file_model)
+        self.file_view.setSortingEnabled(True)
+        self.file_view.setAlternatingRowColors(True)
+        self.file_view.setShowGrid(False)
 
-        grid_right = QGridLayout()
-        grid_right.setColumnMinimumWidth(1, 40)
+        # adjustments
+        self.file_view.verticalHeader().setDefaultSectionSize(22)
+        #self.file_view.horizontalHeader().setDefaultSectionSize(self.file_view.width()/len(header))
+        #self.file_view.horizontalHeader().setStretchLastSection(True)
+        self.file_view.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.file_view.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-        pb_browse = QPushButton(_("Select files..."))
-        # pb_browse.clicked.connect(self.show_dialog)
-        pb_browse.clicked.connect(self.show_explorer)
-        grid_right.addWidget(pb_browse, 1, 1)
+        self.file_view.doubleClicked.connect(self.file_view_doubleclicked)
+        #self.file_view.clicked.connect(self.file_view_clicked)
+        self.file_view.selectionModel().selectionChanged.connect(self.file_view_selection_changed)
+        #self.file_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        #self.file_view.customContextMenuRequested.connect(self.file_view_context_menu_requested)
 
-        pb_resourcelist = QPushButton(_("Create ResourceList"))
-        pb_resourcelist.clicked.connect(self.resync_resource_list)
-        # _('Welcome, {name}').format(name=username)
-        pb_resourcelist.setToolTip(_('Create ResourceList based on selected files'))
-        grid_right.addWidget(pb_resourcelist, 2, 1)
+        #self.lb_nsfc = QLabel("")
+        self.lb_path = QLabel("")
+        self.lb_path.setFont(QFont('SansSerif', 10))
 
-        pb_changelist = QPushButton(_("Create ChangeList"))
-        pb_changelist.clicked.connect(self.resync_change_list)
-        pb_changelist.setToolTip(_('Create ChangeList based on selected files and resync Lists'))
-        grid_right.addWidget(pb_changelist, 3, 1)
+        self.pb_select = QPushButton(_("Select"))
+        self.pb_select.clicked.connect(self.show_explorer)
 
-        # could be part of tooltip instead?
-        self.lb_r_list = QLabel(self.get_existing_resync_file(RESOURCELIST_XML))
-        self.lb_c_list = QLabel(self.get_existing_resync_file(CHANGELIST_XML))
-        grid_right.addWidget(self.lb_r_list, 4, 1)
-        grid_right.addWidget(self.lb_c_list, 5, 1)
+        # right part of frame
+        header_right = [_("Set Name"), _("Files"), _("New Files"), _("Update Files"), _("Unchanged Files")]
+        self.overview_model = OverviewTableModel(self, header_right, [])
+        self.overview = QTableView()
+        self.overview.setModel(self.overview_model)
+        self.overview.setAlternatingRowColors(True)
+        self.overview.setShowGrid(False)
 
-        pb_cancel = QPushButton(_("cancel"))
-        grid_right.addWidget(pb_cancel, 6, 1)
+        self.overview.verticalHeader().setDefaultSectionSize(22)
 
-        vert.addLayout(grid_left)
-        vert.addLayout(grid_right)
-        vert.addStretch(1)
+        self.pb_publish = QPushButton(_("Publish"))
 
-        self.setLayout(vert)
+        self.pb_zip = QPushButton(_("Create Zip"))
+        self.pb_zip.clicked.connect(self.pb_zip_clicked)
+
+        self.__init_ui__()
+
+    def __init_ui__(self):
+
+        vbox = QVBoxLayout()
+
+        splitter = QSplitter()
+
+        splitter.addWidget(self.file_view)
+        splitter.addWidget(self.overview)
+
+        vbox.addWidget(splitter, 1)
+        vbox.addWidget(self.lb_path)
+
+        button_box = QHBoxLayout()
+        button_box.addWidget(self.pb_select)
+        button_box.addStretch(1)
+        button_box.addWidget(self.pb_publish)
+        button_box.addWidget(self.pb_zip)
+        vbox.addLayout(button_box)
+
+        self.setLayout(vbox)
+
+    def file_view_doubleclicked(self, index):
+        path = self.file_model.full_path(index.row())
+        webbrowser.open_new(PurePath(path).as_uri())
+
+    def file_view_clicked(self, index):
+        pass
+
+    def file_view_context_menu_requested(self, point):
+        # PyQt5.QtCore.QPoint(344, 23)
+        print(point)
+
+    def file_view_selection_changed(self, selected, deselected):
+        # selected, deselected: PyQt5.QtCore.QItemSelection
+        sindexes = selected.indexes()
+        if len(sindexes) > 0:
+            index = sindexes[0]
+            path = self.file_model.full_path(index.row())
+            self.lb_path.setText(path)
+        else:
+            self.lb_path.setText("")
+
+    def pb_zip_clicked(self):
+        path = os.path.join(os.path.dirname(self.config.cfg_resync_dir()), RESOURCESYNC_ZIP)
+        ziph = zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED)
+        filename_filter = FilenameFilter()
+        src = self.config.cfg_resync_dir()
+        abs_src = os.path.abspath(src)
+        for dirname, subdirs, files in os.walk(src):
+            for filename in files:
+                if filename_filter.accept(filename):
+                    absname = os.path.abspath(os.path.join(dirname, filename))
+                    arcname = absname[len(abs_src) + 1:]
+                    print('zipping %s as %s' % (os.path.join(dirname, filename),
+                                            arcname))
+                    ziph.write(absname, arcname)
+
+        ziph.close()
+        msgbox = QMessageBox()
+        msgbox.setText("Zip file created: \n" + path)
+        msgbox.exec_()
 
     def show(self):
-        # dynamically reflect current state of config
-        self.lb_r_list.setText(self.get_existing_resync_file(RESOURCELIST_XML))
-        self.lb_c_list.setText(self.get_existing_resync_file(CHANGELIST_XML))
         self.explorer = Explorer(self)
-
-    def show_dialog(self):
-        # See: show_explorer
-        filenames = QFileDialog.getOpenFileNames(
-                        self,
-                        _("Select one or more files to open"),
-            self.config.cfg_resource_dir()
-                        )
-
-        # print(filenames)
-        self.data = ",".join(filenames[0])
-        # print(self.data)
-        self.textEdit.setText(self.data)
 
     def show_explorer(self):
         result = self.explorer.exec_()
         if result:
             filenames = self.explorer.selected_file_set()
             self.data = ",".join(filenames)
-            self.textEdit.setText(str(len(filenames)) + " resources")
+            self.file_model.setNewData(file_details(filenames))
+            self.file_view.selectionModel().clear()
+            self.lb_path.setText("")
+
+            if self.config.cfg_strategy() == 0:
+                self.resync_resource_list()
+            else:
+                self.resync_change_list(filenames)
 
     def resync_resource_list(self):
         c = ResourceSyncPublisherClient(checksum=True)
         args = [self.config.cfg_urlprefix(), self.config.cfg_resource_dir()]
         c.set_mappings(args)
         rl = c.build_resource_list(paths=self.data)
-        rl.write(os.path.join(self.config.cfg_resync_dir(), RESOURCELIST_XML))
-        #print(rl.as_xml())
-        #self.textEdit.setText(rl.as_xml())
+        overview_data = [(_("total"), str(len(rl)), str(len(rl)), str(0), str(0))]
+        self.overview_model.setNewData(overview_data)
+        rl_path = os.path.join(self.config.cfg_resync_dir(), RESOURCELIST_XML)
+        rl.write(rl_path)
+        # webbrowser.open_new(PurePath(rl_path).as_uri())
 
-    def resync_change_list(self):
+
+    def resync_change_list(self, filenames):
         c = ResourceSyncPublisherClient(checksum=True)
         args = [self.config.cfg_urlprefix(), self.config.cfg_resource_dir()]
         c.set_mappings(args)
-        rl = c.calculate_changelist(paths=self.data, resource_sitemap=self.get_existing_resync_file(RESOURCELIST_XML),
-                                    changelist_sitemap=self.get_existing_resync_file(CHANGELIST_XML))
-        rl.write(os.path.join(self.config.cfg_resync_dir(), CHANGELIST_XML))
-        #self.textEdit.setText(rl.as_xml())
+        cl_path = os.path.join(self.config.cfg_resync_dir(), CHANGELIST_XML)
+        cl = c.calculate_changelist(paths=self.data, resource_sitemap=self.get_existing_resync_file(RESOURCELIST_XML),
+                                    changelist_sitemap=self.get_existing_resync_file(CHANGELIST_XML),
+                                    outfile=cl_path)
+        # the calculating should be done in resync, not in the GUI
+        file_count = len(filenames)
+        created_count = 0
+        updated_count = 0
+
+        for resource in cl.resources:
+            if resource.change == "created":
+                created_count += 1
+            elif resource.change == "updated":
+                updated_count += 1
+
+        # this is not the correct computation..
+        unchanged_count = file_count - created_count - updated_count
+
+        overview_data = [(_("total"), str(file_count), str(created_count), str(updated_count), str(unchanged_count))]
+        self.overview_model.setNewData(overview_data)
+
+        # webbrowser.open_new(PurePath(cl_path).as_uri())
+
+
+class FileTableModel(QAbstractTableModel):
+
+    def __init__(self, parent, header, data, *args):
+        QAbstractTableModel.__init__(self, parent, *args)
+        self.header = header
+        self.data = data
+
+    def rowCount(self, parent):
+        return len(self.data)
+
+    def columnCount(self, parent):
+        return len(self.header)
+
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.header[col]
+        return None
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+        if role == Qt.TextAlignmentRole and index.column() >= 2:
+            return Qt.AlignRight + Qt.AlignVCenter
+        # if role == Qt.ToolTipRole:
+        #     return self.data[index.row()][0] # full path
+
+        if role != Qt.DisplayRole:
+            return None
+
+        # Qt.DisplayRole
+        d = self.data[index.row()][index.column()]
+        if index.column() == 0:
+            d = os.path.relpath(os.path.dirname(d), self.parent().config.cfg_resource_dir())
+        elif index.column() == 3:
+            d = str(datetime.datetime.fromtimestamp(d))
+        return d
+
+    def sort(self, col, order):
+        """sort table by given column number col"""
+        self.layoutAboutToBeChanged.emit()
+        self.data = sorted(self.data, key=operator.itemgetter(col))
+        if order == Qt.DescendingOrder:
+            self.data.reverse()
+        self.layoutChanged.emit()
+
+    def setNewData(self, data):
+        self.layoutAboutToBeChanged.emit()
+        self.data = sorted(data, key=operator.itemgetter(0))
+        self.layoutChanged.emit()
+        for index, item in enumerate(self.header):
+            self.parent().file_view.resizeColumnToContents(index)
+
+    def full_path(self, row):
+        return self.data[row][0]
+
+
+class OverviewTableModel(QAbstractTableModel):
+
+    def __init__(self, parent, header, data, *args):
+        QAbstractTableModel.__init__(self, parent, *args)
+        self.header = header
+        self.data = data
+
+    def rowCount(self, parent):
+        return len(self.data)
+
+    def columnCount(self, parent):
+        return len(self.header)
+
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.header[col]
+        return None
+
+    def data(self, index, role):
+        if role == Qt.TextAlignmentRole and index.column() >= 1:
+            return Qt.AlignRight + Qt.AlignVCenter
+
+        if role != Qt.DisplayRole:
+            return None
+
+        # Qt.DisplayRole
+        d = self.data[index.row()][index.column()]
+        return d
+
+    def setNewData(self, data):
+        self.layoutAboutToBeChanged.emit()
+        self.data = sorted(data, key=operator.itemgetter(0))
+        self.layoutChanged.emit()
+        for index, item in enumerate(self.header):
+            self.parent().file_view.resizeColumnToContents(index)
 
 
 # so much for duck typing..
