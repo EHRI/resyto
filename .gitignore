@@ -62,4 +62,6 @@ target/
 .idea/
 .idea/dictionaries/*
 resync
-
+venv/
+blaa/
+blue/

@@ -55,7 +55,7 @@ class ConfigFrame(QFrame):
         grid1.addWidget(self.le_sourcedesc, 3, 2)
         grid1.addItem(QSpacerItem(87, 21), 3, 3)
 
-        self.le_urlprefix.setToolTip(_("The url domain to be used in the resync files"))
+        self.le_urlprefix.setToolTip(_("The url domain to be used in the resync_a files"))
         grid1.addWidget(QLabel(_("URL prefix")), 4, 1)
         grid1.addWidget(self.le_urlprefix, 4, 2)
         grid1.addItem(QSpacerItem(87, 21), 4, 3)
@@ -112,12 +112,12 @@ class ConfigFrame(QFrame):
             self.le_resyncdir.setText(filename)
 
     # def cb_language_changed(self, text):
-    #     print(text)
-    #     print(os.path.abspath(gettext.find(i18n.APP_NAME, localedir=i18n.LOCALE_DIR, languages=[text])))
+    #     logger.debug(text)
+    #     logger.debug(os.path.abspath(gettext.find(i18n.APP_NAME, localedir=i18n.LOCALE_DIR, languages=[text])))
     #     # gettext.translation(i18n.APP_NAME, localedir=i18n.LOCALE_DIR, languages=[text]).install()
     #     i18n.set_language(text)
     #     # repaint window application ??
-    #     print(_("browse"))
+    #     logger.debug(_("browse"))
 
     def hide(self):
         self.__persist_config__()

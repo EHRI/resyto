@@ -1,9 +1,10 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, platform
+import logging, os, platform
 from configparser import ConfigParser
 
+logger = logging.getLogger(__name__)
 
 # Location for configuration files on Windows: ﻿
 # os.path.expanduser("~")\AppData\Local\Programs\rsync\rsync.cfg
@@ -26,12 +27,13 @@ class Configuration(object):
 
     @staticmethod
     def _set_configuration_filename(cfg_filename):
+        logger.info("Setting configuration filename to %s", cfg_filename)
         Configuration._configuration_filename = cfg_filename
 
     @staticmethod
     def _get_configuration_filename():
         if not Configuration._configuration_filename:
-            Configuration._configuration_filename = CFG_FILENAME
+            Configuration._set_configuration_filename(CFG_FILENAME)
 
         return Configuration._configuration_filename
 
@@ -54,7 +56,7 @@ class Configuration(object):
 
         c_path = os.path.join(c_path, "rsync")
         if not os.path.exists(c_path): os.makedirs(c_path)
-        print("Configuration directory = " + c_path)
+        logger.info("Configuration directory: %s", c_path)
         return c_path
 
     @staticmethod
@@ -65,21 +67,17 @@ class Configuration(object):
                                      "sourcedesk": "http://www.example.com/rs/sourcedescription.xml",
                                      "urlprefix": "http://www.example.com/"
                                      },
-                          "settings": {"language": "en-US",
-                                       'keyB': 'valueB',
-                                       'keyC': 'valueC'},
-                          "test": {"foo": "x",
-                                      "bar": "y"}
+                          "settings": {"language": "en-US"}
                           })
         parser.write(f)
         f.close()
-        print("Initial configuration file created at " + location)
+        logger.info("Initial configuration file created at %s", location)
 
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            print("Creating Configuration._instance")
+            logger.info("Creating Configuration._instance")
             cls._instance = super(Configuration, cls).__new__(cls, *args, **kwargs)
             cls.config_path = cls._get_config_path()
             cls.config_file = os.path.join(cls.config_path, Configuration._get_configuration_filename())
@@ -87,7 +85,7 @@ class Configuration(object):
             if not os.path.exists(cls.config_file):
                 cls._create_config_file(cls.parser, cls.config_file)
             else:
-                print("Reading configuration file: " + cls.config_file)
+                logger.info("Reading configuration file: %s", cls.config_file)
                 cls.parser.read(cls.config_file)
 
         return cls._instance
@@ -102,7 +100,7 @@ class Configuration(object):
         f = open(self.config_file, "w")
         self.parser.write(f)
         f.close()
-        print("Persisted " + self.config_file)
+        logger.info("Persisted %s", self.config_file)
 
     def cfg_resource_dir(self):
         return self.parser.get("config", "resource_dir", fallback=os.path.expanduser("~"))
@@ -140,6 +138,24 @@ class Configuration(object):
     def set_settings_language(self, language):
         self.parser["settings"]["language"] = language
 
+    # window dimensions
+    def window_width(self):
+        return int(self.parser.get("window","width", fallback="700"))
+
+    def set_window_width(self, width):
+        if not self.parser.has_section("window"):
+            self.parser.add_section("window")
+        self.parser.set("window", "width", str(width))
+
+    def window_height(self):
+        return int(self.parser.get("window","height", fallback="400"))
+
+    def set_window_height(self, height):
+        if not self.parser.has_section("window"):
+            self.parser.add_section("window")
+        self.parser.set("window", "height", str(height))
+
+    # explorer dimensions
     def explorer_width(self):
         return int(self.parser.get("explorer","width", fallback="630"))
 

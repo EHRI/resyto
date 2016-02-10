@@ -1,19 +1,25 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, operator, datetime, webbrowser, zipfile
-
-
+import datetime, logging
+import operator
+import os
+import webbrowser
+import zipfile
 from pathlib import PurePath
-from PyQt5.QtWidgets import QFrame, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QDialog, QFileDialog, \
-    QFileSystemModel, QTreeView, QAbstractItemView, QTextEdit, QTableView, QAbstractScrollArea, QAbstractScrollArea, \
-    QSplitter, QSizePolicy, QMessageBox
-from PyQt5.QtCore import QRect, QItemSelectionModel, QItemSelectionModel, QAbstractTableModel, Qt, pyqtSignal, QDateTime
-from PyQt5.QtGui import QFont, QFont
-from signal import *
+
+from PyQt5.QtCore import QAbstractTableModel, Qt
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QFrame, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QDialog, QFileSystemModel, QTreeView, QAbstractItemView, \
+    QTableView, QSplitter, QMessageBox
+#from signal import *
 from view.config_frame import Configuration
+#from blaa.ehri_client import ResourceSyncPublisherClient
 from resync_publisher.ehri_client import ResourceSyncPublisherClient
-from resync.resource_list_builder import ResourceListBuilder, Resource
+#from resync_a.resource_list_builder import ResourceListBuilder, Resource
+
+logger = logging.getLogger(__name__)
+
 
 CHANGELIST_XML = "changelist.xml"
 RESOURCELIST_XML = "resourcelist.xml"
@@ -37,7 +43,7 @@ class ExportFrame(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.config = Configuration()
-
+        self.filenames = []
         self.data = ''
 
         # left part of frame
@@ -81,6 +87,7 @@ class ExportFrame(QFrame):
         self.overview.verticalHeader().setDefaultSectionSize(22)
 
         self.pb_publish = QPushButton(_("Publish"))
+        self.pb_publish.clicked.connect(self.pb_publish_clicked)
 
         self.pb_zip = QPushButton(_("Create Zip"))
         self.pb_zip.clicked.connect(self.pb_zip_clicked)
@@ -115,10 +122,6 @@ class ExportFrame(QFrame):
     def file_view_clicked(self, index):
         pass
 
-    def file_view_context_menu_requested(self, point):
-        # PyQt5.QtCore.QPoint(344, 23)
-        print(point)
-
     def file_view_selection_changed(self, selected, deselected):
         # selected, deselected: PyQt5.QtCore.QItemSelection
         sindexes = selected.indexes()
@@ -140,7 +143,7 @@ class ExportFrame(QFrame):
                 if filename_filter.accept(filename):
                     absname = os.path.abspath(os.path.join(dirname, filename))
                     arcname = absname[len(abs_src) + 1:]
-                    print('zipping %s as %s' % (os.path.join(dirname, filename),
+                    logger.debug('zipping %s as %s' % (os.path.join(dirname, filename),
                                             arcname))
                     ziph.write(absname, arcname)
 
@@ -155,16 +158,17 @@ class ExportFrame(QFrame):
     def show_explorer(self):
         result = self.explorer.exec_()
         if result:
-            filenames = self.explorer.selected_file_set()
-            self.data = ",".join(filenames)
-            self.file_model.setNewData(file_details(filenames))
+            self.filenames = self.explorer.selected_file_set()
+            self.data = ",".join(self.filenames)
+            self.file_model.setNewData(file_details(self.filenames))
             self.file_view.selectionModel().clear()
             self.lb_path.setText("")
 
+    def pb_publish_clicked(self):
             if self.config.cfg_strategy() == 0:
                 self.resync_resource_list()
             else:
-                self.resync_change_list(filenames)
+                self.resync_change_list(self.filenames)
 
     def resync_resource_list(self):
         c = ResourceSyncPublisherClient(checksum=True)
@@ -186,7 +190,7 @@ class ExportFrame(QFrame):
         cl = c.calculate_changelist(paths=self.data, resource_sitemap=self.get_existing_resync_file(RESOURCELIST_XML),
                                     changelist_sitemap=self.get_existing_resync_file(CHANGELIST_XML),
                                     outfile=cl_path)
-        # the calculating should be done in resync, not in the GUI
+        # the calculating should be done in resync_a, not in the GUI
         file_count = len(filenames)
         created_count = 0
         updated_count = 0
@@ -409,11 +413,10 @@ class Explorer(QDialog):
                 elif os.path.isfile(path):
                     s.add(path)
                 else:
-                    print("isUnknownThing", path)
+                    logger.warn("isUnknownThing", path)
         return s
 
     def showEvent(self, QShowEvent):
-        # print("showing: ")
         #self.pb_ok.setFocus()
         pass
 
@@ -439,12 +442,10 @@ class Explorer(QDialog):
 
     def item_expanded(self, index):
         # index: a QModelIndex
-        #print("expanded", index.row())
         # show all child items selected/deselected in accordance with state of parent folder
         pass
 
     def item_collapsed(self, index):
-        #print("collapsed", index)
         pass
 
     def pb_deselect_clicked(self):
