@@ -65,3 +65,5 @@ resync
 venv/
 blaa/
 blue/
+logs/resy*
+
