@@ -134,6 +134,7 @@ class ExportFrame(QFrame):
 
     def pb_zip_clicked(self):
         path = os.path.join(os.path.dirname(self.config.cfg_resync_dir()), RESOURCESYNC_ZIP)
+        logger.debug("Creating zip file at %s", path)
         ziph = zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED)
         filename_filter = FilenameFilter()
         src = self.config.cfg_resync_dir()
@@ -148,6 +149,7 @@ class ExportFrame(QFrame):
                     ziph.write(absname, arcname)
 
         ziph.close()
+        logger.debug("Ready creating zip file at %s", path)
         msgbox = QMessageBox()
         msgbox.setText("Zip file created: \n" + path)
         msgbox.exec_()
