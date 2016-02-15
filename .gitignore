@@ -66,4 +66,6 @@ venv/
 blaa/
 blue/
 logs/resy*
+resync/
+resync_publisher/
 
