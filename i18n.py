@@ -4,7 +4,10 @@ import gettext
 import locale
 import os, logging
 
-logger = logging.getLogger(__name__)
+def __get__logger():
+    # Named logger not in sight, use root logger
+    logger = logging.getLogger()
+    return logger
 
 def get_languages():
     found_languages = []
@@ -15,13 +18,13 @@ def get_languages():
 
 
 def set_language(lang):
-    logger.debug("Trying to set language to %s", lang)
+    __get__logger().debug("Trying to set language to %s", lang)
     languages.clear()
     languages.append(lang)
 
-    logger.debug(gettext.find(APP_NAME, LOCALE_DIR, languages=[lang]))
+    __get__logger().debug(gettext.find(APP_NAME, LOCALE_DIR, languages=[lang]))
     gettext.translation(APP_NAME, LOCALE_DIR, languages=[lang], fallback=True).install()
-    logger.debug("Ready setting language to %s", lang)
+    __get__logger().debug("Ready setting language to %s", lang)
     # print("in set_language: "+_("browse"))
 
 
@@ -40,16 +43,16 @@ def get_languages():
 APP_NAME = "resyto"
 # TODO: weird way to find the current module ...
 APP_DIR = os.curdir #"resyto" #os.path.join(os.curdir, "..")
-logger.debug("APP_DIR = %s" % os.path.abspath(APP_DIR))
+__get__logger().debug("APP_DIR = %s" % os.path.abspath(APP_DIR))
 
 LOCALE_DIR = os.path.join(APP_DIR, 'i18n') # .mo files will then be located in APP_Dir/i18n/LANGUAGECODE/LC_MESSAGES/
-logger.debug("LOCALE_DIR = %s" % LOCALE_DIR)
+__get__logger().debug("LOCALE_DIR = %s" % LOCALE_DIR)
 
 # Now we need to choose the language. We will provide a list, and gettext
 # will use the first translation available in the list
 # on desktop is usually LANGUAGES
 DEFAULT_LANGUAGES = get_languages()
-logger.debug("DEFAULT_LANGUAGES = %s" % DEFAULT_LANGUAGES)
+__get__logger().debug("DEFAULT_LANGUAGES = %s" % DEFAULT_LANGUAGES)
 
 #lc, encoding = locale.getdefaultlocale()
 #logger.debug("locale = %s, encoding = %s", lc, encoding)

@@ -12,7 +12,7 @@ from model.config import Configuration
 logging.config.fileConfig('logging.conf')
 
 logger = logging.getLogger(__name__)
-
+logger.debug("Configured logging from file logging.conf")
 
 class RsApplication(QApplication):
 

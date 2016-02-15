@@ -8,13 +8,14 @@ from model.config import Configuration
 from view.config_frame import ConfigFrame
 from view.export_frame import ExportFrame
 
-logger = logging.getLogger(__name__)
+
 
 
 class RsMainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.logger = logging.getLogger(__name__)
         self.config = Configuration()
         self.menubar = self.menuBar()
         self.create_menu()
@@ -86,7 +87,7 @@ class RsMainWindow(QMainWindow):
         self.tab_actions.append(show_rule_based_sets_action) # 4
 
     def close(self):
-        logger.debug("window closing")
+        self.logger.debug("window closing")
         self.config.set_window_height(self.height())
         self.config.set_window_width(self.width())
         self.config.persist()
@@ -122,6 +123,6 @@ class TabbedFrame(QTabWidget):
         self.addTab(QWidget(), _("Rule-based Sets"))
 
     def close(self):
-        logger.debug("tabframe closing")
+        self.logger.debug("tabframe closing")
         self.currentWidget().close()
 

@@ -18,8 +18,6 @@ from view.config_frame import Configuration
 from resync_publisher.ehri_client import ResourceSyncPublisherClient
 #from resync_a.resource_list_builder import ResourceListBuilder, Resource
 
-logger = logging.getLogger(__name__)
-
 
 CHANGELIST_XML = "changelist.xml"
 RESOURCELIST_XML = "resourcelist.xml"
@@ -42,6 +40,7 @@ class ExportFrame(QFrame):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.logger = logging.getLogger(__name__)
         self.config = Configuration()
         self.filenames = []
         self.data = ''
@@ -134,7 +133,7 @@ class ExportFrame(QFrame):
 
     def pb_zip_clicked(self):
         path = os.path.join(os.path.dirname(self.config.cfg_resync_dir()), RESOURCESYNC_ZIP)
-        logger.debug("Creating zip file at %s", path)
+        self.logger.debug("Creating zip file at %s", path)
         ziph = zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED)
         filename_filter = FilenameFilter()
         src = self.config.cfg_resync_dir()
@@ -144,12 +143,12 @@ class ExportFrame(QFrame):
                 if filename_filter.accept(filename):
                     absname = os.path.abspath(os.path.join(dirname, filename))
                     arcname = absname[len(abs_src) + 1:]
-                    logger.debug('zipping %s as %s' % (os.path.join(dirname, filename),
+                    self.logger.debug('zipping %s as %s' % (os.path.join(dirname, filename),
                                             arcname))
                     ziph.write(absname, arcname)
 
         ziph.close()
-        logger.debug("Ready creating zip file at %s", path)
+        self.logger.debug("Ready creating zip file at %s", path)
         msgbox = QMessageBox()
         msgbox.setText("Zip file created: \n" + path)
         msgbox.exec_()
@@ -317,6 +316,7 @@ class Explorer(QDialog):
     def __init__(self, parent, window_title=_("Select resources"),
                  subtitle=_("Select files and/or folders to include")):
         super().__init__(parent)
+        self.logger = logging.getLogger(__name__)
         self.setModal(True)
         self.setSizeGripEnabled(True)
         self.setWindowTitle(window_title)
@@ -415,7 +415,7 @@ class Explorer(QDialog):
                 elif os.path.isfile(path):
                     s.add(path)
                 else:
-                    logger.warn("isUnknownThing", path)
+                    self.logger.warn("isUnknownThing", path)
         return s
 
     def showEvent(self, QShowEvent):

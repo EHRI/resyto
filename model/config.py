@@ -4,7 +4,6 @@
 import logging, os, platform
 from configparser import ConfigParser
 
-logger = logging.getLogger(__name__)
 
 # Location for configuration files on Windows: ﻿
 # os.path.expanduser("~")\AppData\Local\Programs\rsync\rsync.cfg
@@ -26,8 +25,13 @@ class Configuration(object):
     _configuration_filename = CFG_FILENAME
 
     @staticmethod
+    def __get__logger():
+        logger = logging.getLogger(__name__)
+        return logger
+
+    @staticmethod
     def _set_configuration_filename(cfg_filename):
-        logger.info("Setting configuration filename to %s", cfg_filename)
+        Configuration.__get__logger().info("Setting configuration filename to %s", cfg_filename)
         Configuration._configuration_filename = cfg_filename
 
     @staticmethod
@@ -56,7 +60,7 @@ class Configuration(object):
 
         c_path = os.path.join(c_path, "rsync")
         if not os.path.exists(c_path): os.makedirs(c_path)
-        logger.info("Configuration directory: %s", c_path)
+        Configuration.__get__logger().info("Configuration directory: %s", c_path)
         return c_path
 
     @staticmethod
@@ -71,13 +75,13 @@ class Configuration(object):
                           })
         parser.write(f)
         f.close()
-        logger.info("Initial configuration file created at %s", location)
+        Configuration.__get__logger().info("Initial configuration file created at %s", location)
 
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            logger.info("Creating Configuration._instance")
+            Configuration.__get__logger().info("Creating Configuration._instance")
             cls._instance = super(Configuration, cls).__new__(cls, *args, **kwargs)
             cls.config_path = cls._get_config_path()
             cls.config_file = os.path.join(cls.config_path, Configuration._get_configuration_filename())
@@ -85,7 +89,7 @@ class Configuration(object):
             if not os.path.exists(cls.config_file):
                 cls._create_config_file(cls.parser, cls.config_file)
             else:
-                logger.info("Reading configuration file: %s", cls.config_file)
+                Configuration.__get__logger().info("Reading configuration file: %s", cls.config_file)
                 cls.parser.read(cls.config_file)
 
         return cls._instance
@@ -100,7 +104,7 @@ class Configuration(object):
         f = open(self.config_file, "w")
         self.parser.write(f)
         f.close()
-        logger.info("Persisted %s", self.config_file)
+        Configuration.__get__logger().info("Persisted %s", self.config_file)
 
     def cfg_resource_dir(self):
         return self.parser.get("config", "resource_dir", fallback=os.path.expanduser("~"))
