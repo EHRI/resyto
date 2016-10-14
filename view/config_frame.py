@@ -16,11 +16,11 @@ class ConfigFrame(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.config = Configuration()
-        self.le_resourcedir = QLineEdit(self.config.cfg_resource_dir())
+        self.le_resourcedir = QLineEdit(self.config.core_resource_dir())
 
-        self.le_resyncdir = QLineEdit(self.config.cfg_resync_dir())
-        self.le_sourcedesc = QLineEdit(self.config.cfg_sourcedesc())
-        self.le_urlprefix = QLineEdit(self.config.cfg_urlprefix())
+        self.le_resyncdir = QLineEdit(self.config.core_metadata_dir())
+        self.le_sourcedesc = QLineEdit(self.config.core_sourcedesc())
+        self.le_urlprefix = QLineEdit(self.config.core_url_prefix())
         # self.language_choice = QLabel(_("Interface Language"), self)
         self.init_ui()
 
@@ -71,7 +71,7 @@ class ConfigFrame(QFrame):
 
         self.strat_group.addButton(strat_1, 0)
         self.strat_group.addButton(strat_2, 1)
-        self.strat_group.button(self.config.cfg_strategy()).setChecked(True)
+        self.strat_group.button(self.config.core_strategy().value).setChecked(True)
         strat_vert.addWidget(strat_1)
         strat_vert.addWidget(strat_2)
         #self.strat_group.buttonToggled.connect(self.bg_strategy_toggled)
@@ -88,11 +88,11 @@ class ConfigFrame(QFrame):
         self.setLayout(vert)
 
     def __persist_config__(self):
-        self.config.set_cfg_resource_dir(self.le_resourcedir.text())
-        self.config.set_cfg_resync_dir(self.le_resyncdir.text())
-        self.config.set_cfg_sourcedesc(self.le_sourcedesc.text())
-        self.config.set_cfg_urlprefix(self.le_urlprefix.text())
-        self.config.set_cfg_strategy(self.strat_group.checkedId())
+        self.config.set_core_resource_dir(self.le_resourcedir.text())
+        self.config.set_core_metadata_dir(self.le_resyncdir.text())
+        self.config.set_core_sourcedesc(self.le_sourcedesc.text())
+        self.config.set_core_url_prefix(self.le_urlprefix.text())
+        self.config.set_core_strategy(self.strat_group.checkedId())
         self.config.persist()
 
     def pb_resourcedir_clicked(self):

@@ -11,16 +11,16 @@ class TestConfiguration(unittest.TestCase):
         print("\n>>> Testing set_test_config")
         Configuration._set_configuration_filename(None)
         assert not Configuration._configuration_filename
-        assert Configuration._get_configuration_filename() == "rsync.cfg"
+        assert Configuration._get_configuration_filename() == "resyto.cfg"
 
         Configuration._set_configuration_filename("foo.bar")
         assert Configuration._get_configuration_filename() == "foo.bar"
         Configuration._set_configuration_filename(None)
-        assert Configuration._get_configuration_filename() == "rsync.cfg"
+        assert Configuration._get_configuration_filename() == "resyto.cfg"
 
     def test02_instance(self):
         print("\n>>> Testing _instance")
-        Configuration._set_configuration_filename("rsync_test.cfg")
+        Configuration._set_configuration_filename("resyto_test.cfg")
 
         config1 = Configuration()
         config2 = Configuration()
@@ -29,18 +29,20 @@ class TestConfiguration(unittest.TestCase):
 
         path1 = config1.config_path
         if platform.system() == "Darwin":
-            assert path1 == os.path.expanduser("~") + "/.config/rsync"
+            assert path1 == os.path.expanduser("~") + "/.config/resyto"
         elif platform.system() == "Windows":
-            path_expected = os.path.join(os.path.expanduser("~"), "AppData", "Local", "rsync")
+            path_expected = os.path.join(os.path.expanduser("~"), "AppData", "Local", "resyto")
             assert path1 == path_expected
         elif platform.system() == "Linux":
-            assert path1 == os.path.expanduser("~") + "/.config/rsync"
+            assert path1 == os.path.expanduser("~") + "/.config/resyto"
         else:
-            assert path1 == os.path.expanduser("~") + "/rsync"
+            assert path1 == os.path.expanduser("~") + "/resyto"
 
-        assert config1.cfg_resource_dir() == os.path.expanduser("~")
-        config1.set_cfg_resource_dir("foo/bar/baz")
-        assert config2.cfg_resource_dir() == "foo/bar/baz"
+        config1.core_clear()
+        assert config1.core_resource_dir() == os.path.expanduser("~")
+        new_path = os.path.dirname(os.path.realpath(__file__))
+        config1.set_core_resource_dir(new_path)
+        assert config2.core_resource_dir() == new_path
 
         config2.persist()
         config1 = None
@@ -50,26 +52,27 @@ class TestConfiguration(unittest.TestCase):
     # No control over garbage collect, so read cannot be tested.
     def test03_read(self):
         print("\n>>> Testing read")
-        Configuration._set_configuration_filename("rsync_test.cfg")
+        Configuration._set_configuration_filename("resyto_test.cfg")
+        new_path = os.path.dirname(os.path.realpath(__file__))
         config1 = Configuration()
         config2 = Configuration()
 
-        assert config1.cfg_resource_dir() == "foo/bar/baz"
-        assert config2.cfg_resource_dir() == "foo/bar/baz"
+        assert config1.core_resource_dir() == new_path
+        assert config2.core_resource_dir() == new_path
 
     def test04_set_get_language(self):
         print("\n>>> Testing language")
-        Configuration._set_configuration_filename("rsync_test.cfg")
+        Configuration._set_configuration_filename("resyto_test.cfg")
         config1 = Configuration()
 
-        print("current language: " + config1.settings_language())
+        #print("current language: " + config1.settings_language())
         config1.set_settings_language("foo-BR")
-        print("now the language is: " + config1.settings_language())
+        #print("now the language is: " + config1.settings_language())
 
 
     def test99_cleanup(self):
         print("\n>>> Cleaning up")
-        Configuration._set_configuration_filename("rsync_test.cfg")
+        Configuration._set_configuration_filename("resyto_test.cfg")
         config1 = Configuration()
 
         os.remove(config1.config_file)

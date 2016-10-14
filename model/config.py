@@ -3,7 +3,7 @@
 
 import logging, os, platform
 from configparser import ConfigParser
-
+from model.strategy import Strategy
 
 # Location for configuration files on Windows: ﻿
 # os.path.expanduser("~")\AppData\Local\Programs\rsync\rsync.cfg
@@ -17,8 +17,11 @@ from configparser import ConfigParser
 # CentOS:   'Linux'
 
 
-CFG_FILENAME = "rsync.cfg"
-
+CFG_FILENAME = "resyto.cfg"
+SECTION_CORE = "core"
+SECTION_I18N = "i18n"
+SECTION_WINDOW = "window"
+SECTION_EXPLORER = "explorer"
 
 class Configuration(object):
 
@@ -58,7 +61,7 @@ class Configuration(object):
             if not os.path.exists(lin_path): os.makedirs(lin_path)
             if os.path.exists(lin_path): c_path = lin_path
 
-        c_path = os.path.join(c_path, "rsync")
+        c_path = os.path.join(c_path, "resyto")
         if not os.path.exists(c_path): os.makedirs(c_path)
         Configuration.__get__logger().info("Configuration directory: %s", c_path)
         return c_path
@@ -66,12 +69,12 @@ class Configuration(object):
     @staticmethod
     def _create_config_file(parser, location):
         f = open(location, "w")
-        parser.read_dict({"config": {"resource_dir": os.path.expanduser("~"),
+        parser.read_dict({SECTION_CORE: {"resource_dir": os.path.expanduser("~"),
                                      "resync_dir": os.path.expanduser("~"),
-                                     "sourcedesk": "http://www.example.com/rs/sourcedescription.xml",
+                                     "sourcedesc": "/.well-known/resourcesync",
                                      "urlprefix": "http://www.example.com/"
                                      },
-                          "settings": {"language": "en-US"}
+                          SECTION_I18N: {"language": "en-US"}
                           })
         parser.write(f)
         f.close()
@@ -106,72 +109,112 @@ class Configuration(object):
         f.close()
         Configuration.__get__logger().info("Persisted %s", self.config_file)
 
-    def cfg_resource_dir(self):
-        return self.parser.get("config", "resource_dir", fallback=os.path.expanduser("~"))
+    def __sanitize_dir_path__(self, path):
+        if path:
+            if not os.path.isabs(path):
+                path = os.path.abspath(path)
+            if not os.path.exists(path):
+                raise ValueError("Path does not exist: " + path)
+            elif not os.path.isdir(path):
+                raise ValueError("Not a directory: " + path)
+        else:
+            path = ""
+        return path
 
-    def set_cfg_resource_dir(self, resource_dir):
-        self.parser["config"]["resource_dir"] = resource_dir
+    def __sanitize_source_desc__(self, path):
+        if path:
+            if not path.endswith(".well-known/resourcesync"):
+                if not path.endswith("/"):
+                    path += "/"
+                path += ".well-known/resourcesync"
+        else:
+            path = "/.well-known/resourcesync"
+        return path
 
-    def cfg_resync_dir(self):
-        return self.parser.get("config", "resync_dir", fallback=os.path.expanduser("~"))
+    def __sanitize_strategy__(self, name):
+        try:
+            strategy = Strategy[name]
+            return strategy.name
+        except KeyError as err:
+            raise ValueError(err)
 
-    def set_cfg_resync_dir(self, resync_dir):
-        self.parser["config"]["resync_dir"] = resync_dir
+    def __sanitize_option__(self, value):
+        if (not value):
+            value = ""
+        return value
 
-    def cfg_sourcedesc(self):
-        return self.parser.get("config", "sourcedesc", fallback="http://www.example.com/rs/sourcedescription.xml")
+    def __set_option__(self, section, option, value):
+        if not self.parser.has_section(section):
+            self.parser.add_section(section)
+        self.parser.set(section, option, value)
 
-    def set_cfg_sourcedesc(self, sourcedesc):
-        self.parser["config"]["sourcedesc"] = sourcedesc
+    def core_items(self):
+        return self.parser.items(SECTION_CORE)
 
-    def cfg_urlprefix(self):
-        return self.parser.get("config", "urlprefix", fallback="http://www.example.com/")
+    def core_clear(self):
+        self.parser.remove_section(SECTION_CORE)
 
-    def set_cfg_urlprefix(self, urlprefix):
-        self.parser["config"]["urlprefix"] = urlprefix
+    # core settings
+    def core_resource_dir(self):
+        return self.parser.get(SECTION_CORE, "resource_dir", fallback=os.path.expanduser("~"))
 
-    def cfg_strategy(self):
-        return int(self.parser.get("config", "strategy", fallback="0"))
+    def set_core_resource_dir(self, resource_dir):
+        self.__set_option__(SECTION_CORE, "resource_dir", self.__sanitize_dir_path__(resource_dir))
 
-    def set_cfg_strategy(self, id):
-        self.parser.set("config", "strategy", str(id))
+    def core_metadata_dir(self):
+        return self.parser.get(SECTION_CORE, "metadata_dir", fallback=os.path.expanduser("~"))
 
+    def set_core_metadata_dir(self, metadata_dir):
+        self.__set_option__(SECTION_CORE, "metadata_dir", self.__sanitize_dir_path__(metadata_dir))
+
+    def core_sourcedesc(self):
+        return self.parser.get(SECTION_CORE, "sourcedesc", fallback="/.well-known/resourcesync")
+
+    def set_core_sourcedesc(self, sourcedesc):
+        self.__set_option__(SECTION_CORE, "sourcedesc", self.__sanitize_source_desc__(sourcedesc))
+
+    def core_url_prefix(self):
+        return self.parser.get(SECTION_CORE, "url_prefix", fallback="http://www.example.com/")
+
+    def set_core_url_prefix(self, urlprefix):
+        self.__set_option__(SECTION_CORE, "url_prefix", self.__sanitize_option__(urlprefix))
+
+    def core_strategy(self):
+        return Strategy[self.parser.get(SECTION_CORE, "strategy", fallback=Strategy.resourcelist.name)]
+
+    def set_core_strategy(self, name):
+        self.__set_option__(SECTION_CORE, "strategy", self.__sanitize_strategy__(name))
+
+    # i18n settings
     def settings_language(self):
-        return self.parser.get("settings", "language", fallback="en-US")
+        return self.parser.get(SECTION_I18N, "language", fallback="en-US")
 
     def set_settings_language(self, language):
-        self.parser["settings"]["language"] = language
+        # ToDo: sanitize language string
+        self.__set_option__(SECTION_I18N, "language", language)
 
-    # window dimensions
+    # window settings
     def window_width(self):
-        return int(self.parser.get("window","width", fallback="700"))
+        return int(self.parser.get(SECTION_WINDOW, "width", fallback="700"))
 
     def set_window_width(self, width):
-        if not self.parser.has_section("window"):
-            self.parser.add_section("window")
-        self.parser.set("window", "width", str(width))
+        self.__set_option__(SECTION_WINDOW, "width", str(width))
 
     def window_height(self):
-        return int(self.parser.get("window","height", fallback="400"))
+        return int(self.parser.get(SECTION_WINDOW, "height", fallback="400"))
 
     def set_window_height(self, height):
-        if not self.parser.has_section("window"):
-            self.parser.add_section("window")
-        self.parser.set("window", "height", str(height))
+        self.__set_option__(SECTION_WINDOW, "height", str(height))
 
-    # explorer dimensions
+    # explorer settings
     def explorer_width(self):
-        return int(self.parser.get("explorer","width", fallback="630"))
+        return int(self.parser.get(SECTION_EXPLORER, "width", fallback="630"))
 
     def set_explorer_width(self, width):
-        if not self.parser.has_section("explorer"):
-            self.parser.add_section("explorer")
-        self.parser.set("explorer", "width", str(width))
+        self.__set_option__(SECTION_EXPLORER, "width", str(width))
 
     def explorer_height(self):
-        return int(self.parser.get("explorer","height", fallback="400"))
+        return int(self.parser.get(SECTION_EXPLORER, "height", fallback="400"))
 
     def set_explorer_height(self, height):
-        if not self.parser.has_section("explorer"):
-            self.parser.add_section("explorer")
-        self.parser.set("explorer", "height", str(height))
+        self.__set_option__(SECTION_EXPLORER, "height", str(height))

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import gettext
-import locale
-import os, logging
+import logging
+import os
+
 
 def __get__logger():
     # Named logger not in sight, use root logger

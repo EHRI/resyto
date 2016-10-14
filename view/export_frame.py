@@ -35,7 +35,7 @@ class ExportFrame(QFrame):
     def get_existing_resync_file(self, resync_file):
         # get the existing resync_file as file URI.
         #return 'file://'+self.config.get_cfg_resync_dir()+'/'+resync_file
-        p = PurePath(self.config.cfg_resync_dir(), resync_file)
+        p = PurePath(self.config.core_metadata_dir(), resync_file)
         return p.as_uri()
 
     def __init__(self, parent):
@@ -132,11 +132,11 @@ class ExportFrame(QFrame):
             self.lb_path.setText("")
 
     def pb_zip_clicked(self):
-        path = os.path.join(os.path.dirname(self.config.cfg_resync_dir()), RESOURCESYNC_ZIP)
+        path = os.path.join(os.path.dirname(self.config.core_metadata_dir()), RESOURCESYNC_ZIP)
         self.logger.debug("Creating zip file at %s", path)
         ziph = zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED)
         filename_filter = FilenameFilter()
-        src = self.config.cfg_resync_dir()
+        src = self.config.core_metadata_dir()
         abs_src = os.path.abspath(src)
         for dirname, subdirs, files in os.walk(src):
             for filename in files:
@@ -166,28 +166,28 @@ class ExportFrame(QFrame):
             self.lb_path.setText("")
 
     def pb_publish_clicked(self):
-            if self.config.cfg_strategy() == 0:
+            if self.config.core_strategy() == 0:
                 self.resync_resource_list()
             else:
                 self.resync_change_list(self.filenames)
 
     def resync_resource_list(self):
         c = ResourceSyncPublisherClient(checksum=True)
-        args = [self.config.cfg_urlprefix(), self.config.cfg_resource_dir()]
+        args = [self.config.core_url_prefix(), self.config.core_resource_dir()]
         c.set_mappings(args)
         rl = c.build_resource_list(paths=self.data)
         overview_data = [(_("total"), str(len(rl)), str(len(rl)), str(0), str(0))]
         self.overview_model.setNewData(overview_data)
-        rl_path = os.path.join(self.config.cfg_resync_dir(), RESOURCELIST_XML)
+        rl_path = os.path.join(self.config.core_metadata_dir(), RESOURCELIST_XML)
         rl.write(rl_path)
         # webbrowser.open_new(PurePath(rl_path).as_uri())
 
 
     def resync_change_list(self, filenames):
         c = ResourceSyncPublisherClient(checksum=True)
-        args = [self.config.cfg_urlprefix(), self.config.cfg_resource_dir()]
+        args = [self.config.core_url_prefix(), self.config.core_resource_dir()]
         c.set_mappings(args)
-        cl_path = os.path.join(self.config.cfg_resync_dir(), CHANGELIST_XML)
+        cl_path = os.path.join(self.config.core_metadata_dir(), CHANGELIST_XML)
         cl = c.calculate_changelist(paths=self.data, resource_sitemap=self.get_existing_resync_file(RESOURCELIST_XML),
                                     changelist_sitemap=self.get_existing_resync_file(CHANGELIST_XML),
                                     outfile=cl_path)
@@ -243,7 +243,7 @@ class FileTableModel(QAbstractTableModel):
         # Qt.DisplayRole
         d = self.data[index.row()][index.column()]
         if index.column() == 0:
-            d = os.path.relpath(os.path.dirname(d), self.parent().config.cfg_resource_dir())
+            d = os.path.relpath(os.path.dirname(d), self.parent().config.core_resource_dir())
         elif index.column() == 3:
             d = str(datetime.datetime.fromtimestamp(d))
         return d
@@ -332,7 +332,7 @@ class Explorer(QDialog):
         vert = QVBoxLayout(self)
         vert.setContentsMargins(0, 0, 0, 0)
 
-        resource_dir = self.config.cfg_resource_dir()
+        resource_dir = self.config.core_resource_dir()
 
         p_top = QVBoxLayout()
         lb_subtitle = QLabel(self.subtitle)
