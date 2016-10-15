@@ -14,15 +14,17 @@ from model.strategy import Strategy
 try:
     import gnureadline
     sys.modules['readline'] = gnureadline
-    __READLINE__ = "gnu"
+    __GNU_READLINE__ = "gnu"
 except ImportError:
     pass
 
 
 class SuperCmd(cmd.Cmd):
 
-    doc_header_comp = "Press <tab><tab> for options. Press <tab> for completion.\n" if __READLINE__ else ""
-    doc_header = doc_header_comp + "Documented commands (type help <topic>):"
+    _complete_ = "Press <tab><tab> for options. Press <tab> for completion.\n" if __GNU_READLINE__ else ""
+    doc_header = _complete_ + "Documented commands (type help <topic>):"
+
+    stop = False
 
     def __complete_path__(self, text, line, begidx, endidx):
         # see: http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python#27256663
@@ -46,6 +48,22 @@ class SuperCmd(cmd.Cmd):
         else:
             return p
 
+    def postcmd(self, stop, line):
+        """Hook method executed just after a command dispatch is finished."""
+        return self.stop
+
+    def do_exit(self, line):
+        self.stop = True
+
+    def help_exit(self):
+        print("exit\n\tExit", self.__class__.__name__, "mode.")
+
+    def do_EOF(self, line):
+        """EOF, Ctrl+D
+        Exit the application."""
+        print("Bye from", self.intro, line, "\n")
+        sys.exit()
+
 
 class MdPub(SuperCmd):
 
@@ -54,8 +72,13 @@ class MdPub(SuperCmd):
 
     def do_configure(self, line):
         """configure
-        Switch to configuration: Configure settings."""
+        Switch to configuration mode."""
         Configure().cmdloop()
+
+    def do_select(self, line):
+        """select
+        Switch to select mode."""
+        Select().cmdloop()
 
     def do_exit(self, line):
         """exit, EOF, Ctrl+D
@@ -74,8 +97,8 @@ class Configure(SuperCmd):
 
     prompt = "configure > "
     intro = "Configure Metadata Publishing."
+
     config = Configuration()
-    stop = False
 
     def __init__(self):
         cmd.Cmd.__init__(self)
@@ -203,20 +226,23 @@ class Configure(SuperCmd):
             ]
         return completions
 
-    def postcmd(self, stop, line):
-        """Hook method executed just after a command dispatch is finished."""
-        return self.stop
 
-    def do_exit(self, line):
-        """exit
-        Exit configuration mode."""
-        self.stop = True
+class Select(SuperCmd):
 
-    def do_EOF(self, line):
-        """EOF, Ctrl+D
-        Exit the application."""
-        print("Bye from", self.intro, line, "\n")
-        sys.exit()
+    prompt = "select > "
+    intro = "Select data for Metadata Publishing."
+
+    config = Configuration()
+
+    def do_directory(self, path):
+        print("set directory", path)
+
+    def complete_directory(self, text, line, begidx, endidx):
+        if line == "directory ":
+            return [self.config.core_resource_dir()]
+        else:
+            return self.__complete_path__(text, line, begidx, endidx)
+
 
 
 if __name__ == '__main__':

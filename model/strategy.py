@@ -13,8 +13,20 @@ class Strategy(Enum):
 
     @staticmethod
     def names():
-        list = dir(Strategy)
-        del list[0:4]
-        return list
+        """
+        Get the names of this Enum, whithout other method names.
+        :return: List<str> of names
+        """
+        names = dir(Strategy)
+        # = ['__class__', '__doc__', '__members__', '__module__', 'changedump', 'changelist', 'resourcedump', 'resourcelist']
+        del names[0:4]
+        return names # ['changedump', 'changelist', 'resourcedump', 'resourcelist']
 
+    @staticmethod
+    def sanitize(name):
+        try:
+            strategy = Strategy[name]
+            return strategy.name
+        except KeyError as err:
+            raise ValueError(err)
 

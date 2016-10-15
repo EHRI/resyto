@@ -4,6 +4,7 @@
 import logging, os, platform
 from configparser import ConfigParser
 from model.strategy import Strategy
+from util import defaults
 
 # Location for configuration files on Windows: ﻿
 # os.path.expanduser("~")\AppData\Local\Programs\rsync\rsync.cfg
@@ -15,7 +16,6 @@ from model.strategy import Strategy
 # Mac:      'Darwin'
 # Windows:  ﻿'Windows'
 # CentOS:   'Linux'
-
 
 CFG_FILENAME = "resyto.cfg"
 SECTION_CORE = "core"
@@ -109,40 +109,6 @@ class Configuration(object):
         f.close()
         Configuration.__get__logger().info("Persisted %s", self.config_file)
 
-    def __sanitize_dir_path__(self, path):
-        if path:
-            if not os.path.isabs(path):
-                path = os.path.abspath(path)
-            if not os.path.exists(path):
-                raise ValueError("Path does not exist: " + path)
-            elif not os.path.isdir(path):
-                raise ValueError("Not a directory: " + path)
-        else:
-            path = ""
-        return path
-
-    def __sanitize_source_desc__(self, path):
-        if path:
-            if not path.endswith(".well-known/resourcesync"):
-                if not path.endswith("/"):
-                    path += "/"
-                path += ".well-known/resourcesync"
-        else:
-            path = "/.well-known/resourcesync"
-        return path
-
-    def __sanitize_strategy__(self, name):
-        try:
-            strategy = Strategy[name]
-            return strategy.name
-        except KeyError as err:
-            raise ValueError(err)
-
-    def __sanitize_option__(self, value):
-        if (not value):
-            value = ""
-        return value
-
     def __set_option__(self, section, option, value):
         if not self.parser.has_section(section):
             self.parser.add_section(section)
@@ -159,31 +125,31 @@ class Configuration(object):
         return self.parser.get(SECTION_CORE, "resource_dir", fallback=os.path.expanduser("~"))
 
     def set_core_resource_dir(self, resource_dir):
-        self.__set_option__(SECTION_CORE, "resource_dir", self.__sanitize_dir_path__(resource_dir))
+        self.__set_option__(SECTION_CORE, "resource_dir", defaults.sanitize_directory_path(resource_dir))
 
     def core_metadata_dir(self):
         return self.parser.get(SECTION_CORE, "metadata_dir", fallback=os.path.expanduser("~"))
 
     def set_core_metadata_dir(self, metadata_dir):
-        self.__set_option__(SECTION_CORE, "metadata_dir", self.__sanitize_dir_path__(metadata_dir))
+        self.__set_option__(SECTION_CORE, "metadata_dir", defaults.sanitize_directory_path(metadata_dir))
 
     def core_sourcedesc(self):
         return self.parser.get(SECTION_CORE, "sourcedesc", fallback="/.well-known/resourcesync")
 
     def set_core_sourcedesc(self, sourcedesc):
-        self.__set_option__(SECTION_CORE, "sourcedesc", self.__sanitize_source_desc__(sourcedesc))
+        self.__set_option__(SECTION_CORE, "sourcedesc", defaults.sanitize_source_desc(sourcedesc))
 
     def core_url_prefix(self):
         return self.parser.get(SECTION_CORE, "url_prefix", fallback="http://www.example.com/")
 
     def set_core_url_prefix(self, urlprefix):
-        self.__set_option__(SECTION_CORE, "url_prefix", self.__sanitize_option__(urlprefix))
+        self.__set_option__(SECTION_CORE, "url_prefix", defaults.sanitize_url_prefix(urlprefix))
 
     def core_strategy(self):
         return Strategy[self.parser.get(SECTION_CORE, "strategy", fallback=Strategy.resourcelist.name)]
 
     def set_core_strategy(self, name):
-        self.__set_option__(SECTION_CORE, "strategy", self.__sanitize_strategy__(name))
+        self.__set_option__(SECTION_CORE, "strategy", Strategy.sanitize(name))
 
     # i18n settings
     def settings_language(self):

@@ -1,7 +1,10 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import unittest, os, platform, sys
+import os
+import platform
+import unittest
+
 from model.config import Configuration
 
 
