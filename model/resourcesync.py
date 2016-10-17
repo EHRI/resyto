@@ -5,9 +5,10 @@ import os
 import urllib.parse
 
 from model.config import Configuration
-from model.filters import FileFilters, ExcludeHiddenFileFilter, IncludeDirectoryFileFilter, ExcludeDirectoryFileFilter
+from model.filters import Filters, DirectoryPatternFilter, HiddenFileFilter
 from resync import Resource
 from resync import ResourceList
+from resync.sitemap import Sitemap
 from util import defaults
 
 
@@ -23,34 +24,46 @@ class ResourceSync(object):
         defaults.sanitize_url_prefix(self.url_prefix)
 
         self.stop_on_error = stop_on_error
-        self.file_filters = FileFilters([
-            ExcludeHiddenFileFilter(),
-            IncludeDirectoryFileFilter(self.resource_dir, self.stop_on_error),
-            ExcludeDirectoryFileFilter(self.metadata_dir)
-        ])
 
-    def resourcelist_from_directory(self, directory):
+        self.file_filters = Filters()
+        self.file_filters.including(
+            DirectoryPatternFilter("^" + self.resource_dir)
+        ).excluding(
+            HiddenFileFilter(),
+            DirectoryPatternFilter("^" + self.metadata_dir)
+        )
+
+        self.max_items_in_list = 50000
+
+    def resourcelists_from_directory(self, directory):
         abs_dir = os.path.abspath(directory)
         filenames = []
         for root, _directories, _filenames in os.walk(abs_dir):
             for filename in _filenames:
                 filenames.append(os.path.join(root, filename))
 
-        return self.resourcelist_from_files(filenames)
+        return self.resourcelists_from_files(filenames)
 
-    def resourcelist_from_files(self, filenames=list()):
-        # ToDo: list > 50.000 items
-        rl = ResourceList()
-        rl.pretty_xml = True
+    def resourcelists_from_files(self, filenames=list()):
+        count_files = 0
+        rl = None
         for filename in filenames:
-            if self.file_filters.accept(filename):
-                path = os.path.relpath(filename, self.resource_dir)
+            file_path = os.path.abspath(filename)
+            if self.file_filters.accept(file_path):
+                count_files += 1
+                if (count_files -1) % self.max_items_in_list == 0:
+                    if rl:
+                        yield rl
+                    rl = ResourceList()
+
+                path = os.path.relpath(file_path, self.resource_dir)
                 uri = self.url_prefix + urllib.parse.quote(path)
-                stat = os.stat(filename)
+                stat = os.stat(file_path)
                 rl.add(Resource(uri=uri, length=stat.st_size,
                                 lastmod=defaults.w3c_datetime(stat.st_ctime),
-                                md5=defaults.md5_for_file(filename)))
-        return rl
+                                md5=defaults.md5_for_file(file_path)))
+        if rl:
+            yield rl
 
 
 
