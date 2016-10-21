@@ -1,9 +1,40 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import unittest
 
-from model.filters import Filters,  And, FilenamePatternFilter, DirectoryPatternFilter, HiddenFileFilter, Not
+from util import filters
+from util.filters import Filters, And, FilenamePatternFilter, DirectoryPatternFilter, HiddenFileFilter, Not, Filter
+
+
+def passes(self, name, **kwargs):
+    pass
+
+
+class TestFilter(unittest.TestCase):
+
+    def test_listFilters(self):
+        filter_classes = filters.list_filter_subclasses()
+        self.assertIsInstance(filter_classes, list)
+        #for filter in filter_classes:
+        #    print(filter.__name__)
+
+    def test_is_filter_duck_type(self):
+        self.assertTrue(filters.is_filter_duck_type(Filter))
+        self.assertTrue(filters.is_filter_duck_type(Filter()))
+        self.assertTrue(filters.is_filter_duck_type(And))
+        self.assertTrue(filters.is_filter_duck_type(And()))
+        self.assertTrue(filters.is_filter_duck_type(TestFilter))
+        self.assertTrue(filters.is_filter_duck_type(TestFilter()))
+
+        self.assertFalse(filters.is_filter_duck_type(TestFilenamePatternFilter))
+        self.assertFalse(filters.is_filter_duck_type(TestFilenamePatternFilter()))
+
+        # don't know how to call functions on modules
+        # module = inspect.getmodule(self)
+        # self.assertTrue(filters.is_filter_duck_type(module))
+
+    def passes(self, name, **kwargs):
+        pass
 
 
 class TestFilenamePatternFilter(unittest.TestCase):
@@ -49,14 +80,32 @@ class TestFilters(unittest.TestCase):
         self.assertFalse(filters.accept(""))
         self.assertFalse(filters.accept(None))
 
+    def test_add_includes_with_None(self):
+        filters = Filters()
+        filters.add_including(None)
+        self.assertEquals(0, len(filters.including_filters))
+
+    def test_add_includes_with_type(self):
+        filters = Filters()
+        filters.add_including(Filter.__class__)
+        filters.add_including(Filter().__class__)
+
+        self.assertEquals(0, len(filters.including_filters))
+        self.assertFalse(filters.accept("anything"))
+
+        filters.add_including(Filter())
+        self.assertEquals(1, len(filters.including_filters))
+        self.assertTrue(filters.accept("anything"))
+
     def test_accept_folder_and_file(self):
         filters = Filters()
-        filters.including(
+        filters.add_including(
             And(
                 DirectoryPatternFilter("^foo/bar"),
                 FilenamePatternFilter(".txt$")
             )
-        ).excluding(
+        )
+        filters.add_excluding(
             HiddenFileFilter()
         )
 
@@ -69,14 +118,15 @@ class TestFilters(unittest.TestCase):
 
     def test_accept_folders_and_not_file_extension_in_some_folder(self):
         filters = Filters()
-        filters.including(
+        filters.add_including(
             And(
                 DirectoryPatternFilter("^foo/bar"),
                 Not(FilenamePatternFilter(".txt$"))
             ),
             DirectoryPatternFilter("^bor/tor")
 
-        ).excluding(
+        )
+        filters.add_excluding(
             HiddenFileFilter()
         )
 
