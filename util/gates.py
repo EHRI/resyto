@@ -1,5 +1,20 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Logical functions. Each logical function takes a one-argument predicate or a list of one-argument predicates.
+Each logical function returns a one_argument predicate that is the chain of, or the negation of its arguments.
+There are functions to chain predicates along NOT, AND, OR, NAND, NOR, XOR and XNOR.
+
+The function 'gate' takes two lists of predicates, includes and excludes. Includes is the list of predicates that can
+permit x through the gate; excludes is the list of predicates that can prevent x from passing the gate.
+
+Each logical function, before returning the chained predicate, will check if the predicates in the argument list
+are truly one-argument predicates. The behavior after detection of a wrong argument can be influenced by setting
+    set_stop_on_creation_error(boolean)
+
+The default behavior after detection of a wrong argument is to throw a GateCreationException.
+
+"""
 import inspect
 import logging
 from itertools import takewhile
@@ -7,6 +22,7 @@ from itertools import takewhile
 
 def not_(predicate):
     """
+    f(x) = not p(x)
     A negating predicate.
     :param predicate: the predicate to negate
     :return: a new predicate implementing not(p)
@@ -17,6 +33,7 @@ def not_(predicate):
 
 def and_(*predicates):
     """
+    f(x) = p_1(x) and p_2(x) and ... and p_n(x)
     The chain of predicates is True if all predicates are True, otherwise False
     :param predicates: predicates to chain in and.
     :return: a new predicate implementing p_1 and p_2 and ... and p_n
@@ -27,6 +44,7 @@ def and_(*predicates):
 
 def nor_(*predicates):
     """
+    f(x) = not(p_1(x) or p_2(x) or ... or p_n(x))
     The chain of predicates is False if at least one predicate is True, otherwise True
     :param predicates: predicates to chain in nor.
     :return: a new predicate implementing not(p_1 or p_2 or ... or p_n)
@@ -37,6 +55,7 @@ def nor_(*predicates):
 
 def or_(*predicates):
     """
+    f(x) = p_1(x) or p_2(x) or ... or p_n(x)
     The chain of predicates is True if at least one predicate is True, otherwise False
     :param predicates: predicates to chain in or.
     :return: a new predicate implementing p_1 or p_2 or ... or p_n
@@ -46,6 +65,7 @@ def or_(*predicates):
 
 def nand_(*predicates):
     """
+    f(x) = not(p_1(x) and p_2(x) and ... and p_n(x))
     The chain of predicates is False if all predicates are True, otherwise True
     :param predicates: predicates to chain in nand.
     :return: a new predicate implementing not(p_1 and p_2 and ... and p_n)
@@ -55,6 +75,7 @@ def nand_(*predicates):
 
 def xor_(*predicates):
     """
+    f(x) = p_1(x) xor p_2(x) xor ... xor p_n(x)
     Strictly speaking
         " A chain of XORs—a XOR b XOR c XOR d (and so on)—is true whenever an odd number of the inputs are true
         and is false whenever an even number of inputs are true." (https://en.wikipedia.org/wiki/Exclusive_or)
@@ -73,6 +94,7 @@ def xor_(*predicates):
 
 def xnor_(*predicates):
     """
+    f(x) = not(p_1(x) xor p_2(x) xor ... xor p_n(x))
     The chain of predicates is False if one and only one predicate is True, otherwise True.
     See also xor_(*predicates).
     :param predicates: predicates to chain with xnor.

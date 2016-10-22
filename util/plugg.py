@@ -11,8 +11,7 @@ APPLICATION_HOME = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 LOG = logging.getLogger(__name__)
 
 
-
-class Plugger(object):
+class Inspector(object):
 
     def __init__(self, stop_on_error=False):
          self.stop_on_error = stop_on_error
@@ -54,11 +53,11 @@ class Plugger(object):
                 if cls[1].__module__ == module.__name__:
                     yield cls[1]
 
-    def list_classes_filtered(self, filters=list(), *directories):
+    def list_classes_filtered(self, predicates=list(), *directories):
         for cls in self.list_classes(*directories):
             passes = True
-            if (filters):
-                for f in filters:
+            if predicates:
+                for f in predicates:
                     if not f(cls):
                         passes = False
                         break
@@ -72,25 +71,21 @@ class Plugger(object):
         # return classes
 
 
-## Closures for class filtering
+## functions and closures for class filtering
 def is_subclass_of(super):
-    def _is_subclass_of(cls): return issubclass(cls, super)
-    return _is_subclass_of
+    return lambda cls : issubclass(cls, super)
 
 
 def is_qnamed(qname):
-    def _is_qnamed(cls): return qname == cls.__module__ + "." + cls.__name__
-    return _is_qnamed
+    return lambda cls : qname == cls.__module__ + "." + cls.__name__
 
 
 def is_named(name):
-    def _is_named(cls): return name == cls.__name__ or name == cls.__module__ + "." + cls.__name__
-    return _is_named
+    return lambda cls : cls.__name__ or name == cls.__module__ + "." + cls.__name__
 
 
 def from_module(module_name):
-    def _from_module(cls): return cls.__module__ == module_name
-    return _from_module
+    return lambda cls : cls.__module__.startswith(module_name)
 
 
 def has_function(function_name):
@@ -107,19 +102,6 @@ def has_function(function_name):
         return False
     return _has_function
 
-
-def _not_(predicate):
-    __not__ = lambda x: not predicate(x)
-    return __not__
-
-
-def _or_(*predicates):
-    __or__ = lambda x: [x for predicate in predicates if predicate(x)]
-    return __or__
-
-
-def _nor_(*predicates):
-    return _not_(_or_(*predicates))
 
 
 
