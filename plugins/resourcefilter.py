@@ -29,7 +29,6 @@ class DefaultResourceGateBuilder(ResourceGateBuilder):
         self.excludes = []
 
     def build_includes(self, includes=list()):
-
         self.includes.extend(includes)
         return self.includes
 

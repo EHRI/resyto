@@ -81,7 +81,7 @@ def is_qnamed(qname):
 
 
 def is_named(name):
-    return lambda cls : cls.__name__ or name == cls.__module__ + "." + cls.__name__
+    return lambda cls : name == cls.__name__ or name == cls.__module__ + "." + cls.__name__
 
 
 def from_module(module_name):
