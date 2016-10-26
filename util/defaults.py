@@ -49,6 +49,10 @@ def sanitize_url_prefix(value):
 
     return sanitize_string(value)
 
+def sanitize_url_path(value):
+    if value:
+        value = urllib.parse.quote(value.replace("\\", "/"))
+    return sanitize_string(value)
 
 def sanitize_string(value):
     if (not value):

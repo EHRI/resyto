@@ -18,33 +18,35 @@ class Inspector(object):
 
     @staticmethod
     def list_py_files(*directories):
-        for dir in directories:
-            abs_dir = os.path.join(APPLICATION_HOME, dir)
-            for root, _directories, _filenames in os.walk(abs_dir):
-                for filename in _filenames:
-                    if filename.endswith(".py") and not filename.startswith("__init__"):
-                        py_file = os.path.join(root, filename)
-                        yield py_file
+        for di in directories:
+            if di:
+                abs_dir = os.path.join(APPLICATION_HOME, di)
+                for root, _directories, _filenames in os.walk(abs_dir):
+                    for filename in _filenames:
+                        if filename.endswith(".py") and not filename.startswith("__init__"):
+                            py_file = os.path.join(root, filename)
+                            yield py_file
 
     def load_modules(self, *directories):
-        for dir in directories:
-            abs_dir = os.path.join(APPLICATION_HOME, dir)
-            plugin_home = APPLICATION_HOME
-            if not abs_dir.startswith(APPLICATION_HOME):
-                plugin_home = abs_dir
-                sys.path.append(plugin_home)
+        for di in directories:
+            if di:
+                abs_dir = os.path.join(APPLICATION_HOME, di)
+                plugin_home = APPLICATION_HOME
+                if not abs_dir.startswith(APPLICATION_HOME):
+                    plugin_home = abs_dir
+                    sys.path.append(plugin_home)
 
-            for py_file in self.list_py_files(abs_dir):
-                names = py_file.rsplit(".", 1) # everything but the extension
-                path = os.path.relpath(names[0], plugin_home).replace(os.sep, ".")
-                try:
-                    module = importlib.import_module(path)
-                    yield module
-                except ImportError as ex:
-                    if self.stop_on_error:
-                        raise ex
-                    else:
-                        LOG.exception(ex)
+                for py_file in self.list_py_files(abs_dir):
+                    names = py_file.rsplit(".", 1) # everything but the extension
+                    path = os.path.relpath(names[0], plugin_home).replace(os.sep, ".")
+                    try:
+                        module = importlib.import_module(path)
+                        yield module
+                    except ImportError as ex:
+                        if self.stop_on_error:
+                            raise ex
+                        else:
+                            LOG.exception(ex)
 
     def list_classes(self, *directories):
         for module in self.load_modules(*directories):

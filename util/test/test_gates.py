@@ -1,9 +1,16 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import importlib
+import logging
+import os
 import unittest
 
-from util.gates import not_, or_, nor_, and_, nand_, xor_, xnor_, gate, is_one_arg_predicate, set_stop_on_creation_error
+import sys
+
+from util.gates import not_, or_, nor_, and_, nand_, xor_, xnor_, gate, is_one_arg_predicate, set_stop_on_creation_error, \
+    PluggedInGateBuilder
+
+LOG = logging.getLogger(__name__)
 
 
 class TestGates(unittest.TestCase):
@@ -117,13 +124,17 @@ class TestGates(unittest.TestCase):
 
         xnor_abc = xnor_(a, b, c)
 
-        self.assertTrue(xnor_abc("word"))
-        self.assertFalse(xnor_abc("a word"))
-        self.assertTrue(xnor_abc("a word box"))
+        self.assertTrue(xnor_abc("acb"))
+        self.assertTrue(xnor_abc("not uh single letter is .. or . in here"))
         self.assertTrue(xnor_abc("a word box captured"))
-        self.assertTrue(xnor_abc("captured"))
+        self.assertTrue(xnor_abc("be captured"))
+        self.assertTrue(xnor_abc("rainy day at the club"))
+        self.assertTrue(xnor_abc("black raincoat"))
+
+        self.assertFalse(xnor_abc("a word box"))
+        self.assertFalse(xnor_abc("captured"))
         self.assertFalse(xnor_abc("rainy day"))
-        self.assertTrue(xnor_abc("raincoat"))
+        self.assertFalse(xnor_abc("raincoat"))
 
     def test_gate(self):
         a = lambda word : "a" in word
@@ -230,40 +241,38 @@ class TestGates(unittest.TestCase):
         self.assertFalse((g(True)))
         self.assertTrue((g(False)))
 
-
-
-
-    def is_bound_method(self, one_arg):
-        pass
-
-    def make_two_arg_predicate(self, foo, bar):
-        def two_args(foo, bar):
-            return foo == bar
-        return two_args
-
-    def make_one_arg_predicate(self, foo):
-        def one_args(foo):
-            return foo == "bar"
-        return one_args
-
     def make_one_default_arg(self):
         def one_default_arg(foo=True):
             return not foo
         return one_default_arg
 
+    #### function creation for test_is_all_predicate
+    def is_bound_method(self, one_arg):
+        pass
+
+    def make_two_arg_predicate(self, foo, bar):
+        def two_args(foo, bar):
+            return False
+        return two_args
+
+    def make_one_arg_predicate(self, foo):
+        def one_args(foo):
+            return False
+        return one_args
+
     def make_one_arg_default_arg(self):
         def one_arg_default_arg(bar, foo=True):
-            return not foo and bar
+            return False
         return one_arg_default_arg
 
     def make_var_args(self):
         def var_args(*args):
-            return "foo" in args
+            return False
         return var_args
 
     def make_kwargs(self):
         def kw_args(**kwargs):
-            return "foo" in kwargs
+            return False
         return kw_args
 
     def make_arg_var_args(self):
@@ -277,8 +286,10 @@ class TestGates(unittest.TestCase):
         return arg_kw_args
 
     def test_is_all_predicate(self):
-        set_stop_on_creation_error(False)
+        previous_value = set_stop_on_creation_error(False)
 
+        LOG.warn("==> next 12 warn statements from %s"
+                 % ".".join([self.__module__,  self.__class__.__name__, "test_is_all_predicate"]))
         self.assertFalse(is_one_arg_predicate(TestGates))
         self.assertFalse(is_one_arg_predicate(TestGates()))
         self.assertFalse(is_one_arg_predicate(self.reset_gate_fast))
@@ -298,7 +309,28 @@ class TestGates(unittest.TestCase):
         self.assertTrue(is_one_arg_predicate(self.make_one_arg_predicate("")))
         self.assertTrue(is_one_arg_predicate(self.make_one_default_arg()))
 
-        set_stop_on_creation_error(True)
+        set_stop_on_creation_error(previous_value)
+
+
+class TestPluggedInGateBuilder(unittest.TestCase):
+
+    @unittest.skip("no automated test")
+    def test_init_(self):
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        root.addHandler(ch)
+
+        builder_name = "ResourceGateBuilder"
+        plugin_directory = os.path.join(os.path.expanduser("~"), "tmp/plugins")
+        builder = PluggedInGateBuilder(builder_name, plugin_directory)
+        resourcegate = builder.build_gate()
+        print(resourcegate)
+        print(resourcegate("x"))
 
 
 

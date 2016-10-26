@@ -85,7 +85,7 @@ class Configuration(object):
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             Configuration.__get__logger().info("Creating Configuration._instance")
-            cls._instance = super(Configuration, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(Configuration, cls).__new__(cls, *args)
             cls.config_path = cls._get_config_path()
             cls.config_file = os.path.join(cls.config_path, Configuration._get_configuration_filename())
             cls.parser = ConfigParser()
@@ -132,6 +132,12 @@ class Configuration(object):
 
     def set_core_metadata_dir(self, metadata_dir):
         self.__set_option__(SECTION_CORE, "metadata_dir", defaults.sanitize_directory_path(metadata_dir))
+
+    def core_plugin_dir(self):
+        return self.parser.get(SECTION_CORE, "plugin_dir", fallback="")
+
+    def set_core_plugin_dir(self, plugin_dir):
+        self.__set_option__(SECTION_CORE, "plugin_dir", defaults.sanitize_directory_path(plugin_dir))
 
     def core_sourcedesc(self):
         return self.parser.get(SECTION_CORE, "sourcedesc", fallback="/.well-known/resourcesync")

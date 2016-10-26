@@ -6,12 +6,22 @@ import unittest
 import util.plugg as plugg
 from util.gates import nor_
 
-#@unittest.skip("no automated tests")
+@unittest.skip("no automated tests")
 class TestInspector(unittest.TestCase):
 
     def test_list_py_files(self):
         user_home = os.path.expanduser("~")
         for py_file in plugg.Inspector.list_py_files("plugins", os.path.join(user_home, "tmp")):
+            print(py_file)
+
+    def test_list_py_files_with_empty_string(self):
+        # searches APPLICATION_HOME
+        for py_file in plugg.Inspector.list_py_files(""):
+            print(py_file)
+
+    def test_list_py_files_with_empty_None(self):
+        # searches APPLICATION_HOME
+        for py_file in plugg.Inspector.list_py_files(None):
             print(py_file)
 
     def test_load_modules(self):
