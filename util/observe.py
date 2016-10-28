@@ -33,32 +33,42 @@ class Observer(object):
         pass
 
 
-class GreedyEventPrinter(Observer):
+class EventPrinter(Observer):
+
+    def __init__(self, event_level = 0):
+        self.event_level = event_level
 
     def update(self, *args, **kwargs):
-        if len(args) > 1:
+        if len(args) == 2:
             try:
                 source = args[0].__class__.__name__
                 event = args[1]
-                print(source, event.name, kwargs)
-            except:
+                if event.value >= self.event_level:
+                    print(source, event.name, kwargs)
+            except AttributeError:
                 print("unexpected args: ", args)
+        else:
+            print(args, kwargs)
 
 
-class GreedyEventLogger(Observer):
+class EventLogger(Observer):
 
-    def __init__(self, level=logging.DEBUG):
+    def __init__(self, logging_level=logging.DEBUG, event_level=0):
         self.logger = logging.getLogger(__name__)
-        self.level = level
+        self.logging_level = logging_level
+        self.event_level = event_level
 
     def update(self, *args, **kwargs):
-        if len(args) > 1:
+        if len(args) == 2:
             try:
                 source = args[0].__class__.__name__
                 event = args[1]
-                self.logger.log(self.level, "%s, %s, %s" % (source, event.name, kwargs))
-            except:
+                if event.value >= self.event_level:
+                    self.logger.log(self.logging_level, "%s, %s, %s" % (source, event.name, kwargs))
+            except AttributeError:
                 self.logger.warn("unexpected args: " % args)
+        else:
+            self.logger.log(self.logging_level, "%s, %s" % (args, kwargs))
 
 
 class SelectiveEventPrinter(Observer):
@@ -74,7 +84,7 @@ class SelectiveEventPrinter(Observer):
                     try:
                         source = args[0].__class__.__name__
                         print(source, event.name, kwargs)
-                    except:
+                    except AttributeError:
                         print("unexpected args: %s", args)
 
 
@@ -93,5 +103,5 @@ class SelectiveEventLogger(Observer):
                     try:
                         source = args[0].__class__.__name__
                         self.logger.log(self.level, "%s, %s, %s" % (source, event.name, kwargs))
-                    except:
+                    except AttributeError:
                         self.logger.warn("unexpected args: %s" % args)

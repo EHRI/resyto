@@ -25,5 +25,11 @@ class Test_Strategy(unittest.TestCase):
         self.assertIs(Strategy(2), Strategy.resourcedump)
         self.assertIs(Strategy(3), Strategy.changedump)
 
+    def test_name(self):
+        # get the name of a strategy
+        strat = Strategy.resourcelist
+        self.assertEquals("resourcelist", strat.name)
+        self.assertTrue(isinstance(strat.name, str))
+
 
 

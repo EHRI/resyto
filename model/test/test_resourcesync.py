@@ -5,8 +5,12 @@ import os
 import sys
 import unittest
 
+import time
+
 from model.resourcesync import ResourceSync
-from util.observe import GreedyEventLogger
+from resync import ChangeList
+from resync.sitemap import Sitemap
+from util.observe import EventLogger
 
 
 @unittest.skip
@@ -40,23 +44,85 @@ class TestResourceSync(unittest.TestCase):
         #plugin_dir = None
         rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
         rs.max_items_in_list = 5
-        rs.register(GreedyEventLogger(level=logging.INFO))
+        rs.register(EventLogger(logging_level=logging.INFO))
 
-        generator = rs.resourcelist_generator()
-        for count_resources, count_documents, rl in generator([os.path.join(user_home, "tmp/rs")]):
-            rl.pretty_xml = True
-            print("========\n", "count resources=%d, count_documents=%d\n" % (count_resources, count_documents),
-                  rl.as_xml())
+        generator1 = rs.resourcelist_generator([os.path.join(user_home, "tmp/rs")])
+        generator2 = rs.resourcelist_generator([os.path.join(user_home, "tmp/rs/collection3")])
 
-    def test_create_resourcelist_from_directory(self):
+        for count_resources, count_documents, uri, rlist in generator1():
+            rlist.pretty_xml = True
+            print("========\n", "count resources=%d, count_documents=%d uri=%s\n"
+                  % (count_resources, count_documents, uri),
+                  rlist.as_xml())
+
+        time.sleep(10)
+
+        for count_resources, count_documents, uri, rlist in generator2():
+            rlist.pretty_xml = True
+            print("========\n", "count resources=%d, count_documents=%d uri=%s\n"
+                  % (count_resources, count_documents, uri),
+                  rlist.as_xml())
+
+    def test_capabilitylist_generator_with_resourcelist(self):
+        user_home = os.path.expanduser("~")
+        metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
+        plugin_dir = os.path.join(user_home, "tmp", "rs", "plugins")
+        # plugin_dir = None
+        rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
+        rs.max_items_in_list = 5
+        rs.register(EventLogger(logging_level=logging.INFO, event_level=3))
+
+        list_generator = rs.resourcelist_generator([os.path.join(user_home, "tmp/rs")])
+        generator = rs.capabilitylist_generator()
+        for uri, li in generator(list_generator):
+            li.pretty_xml = True
+            print(uri + "\n" + li.as_xml())
+
+    def test_capabilitylist_generator_with_changelist(self):
+        user_home = os.path.expanduser("~")
+        metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
+        plugin_dir = os.path.join(user_home, "tmp", "rs", "plugins")
+
+        rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
+        rs.max_items_in_list = 5
+        rs.register(EventLogger(logging_level=logging.INFO, event_level=3))
+
+        list_generator = rs.changelist_generator([os.path.join(user_home, "tmp/rs")])
+        generator = rs.capabilitylist_generator()
+        for uri, li in generator(list_generator):
+            li.pretty_xml = True
+            print(uri + "\n" + li.as_xml())
+
+
+    def test_previous_state_resources(self):
         user_home = os.path.expanduser("~")
         metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
         rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir)
-        #rs.register(GreedyEventLogger(level=logging.INFO))
 
-        rs.max_items_in_list = 5
+        resources = rs.previous_state()
 
-        rs.create_resourcelists_from_directories(os.path.join(user_home, "tmp/rs"))
+
+    def test_changelist_generator(self):
+        user_home = os.path.expanduser("~")
+        metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
+        plugin_dir = os.path.join(user_home, "tmp", "rs", "plugins")
+        rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
+
+        generator = rs.changelist_generator([os.path.join(user_home, "tmp/rs")])
+        for x in generator():
+            pass
+
+    def test_stupid_changelist(self):
+        path = "/Users/ecco/tmp/rs/metadata/changelist001.xml"
+        with open(path, "r") as cl_file:
+            changelist = ChangeList()
+            sm = Sitemap()
+            sm.parse_xml(cl_file, resources=changelist)
+
+        changelist.pretty_xml = True
+        print(changelist.as_xml())
+
+
 
     # keeping count in recursive loop and yielding things...
     def dingdong(self, dinges):

@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 import base64
 import hashlib
+import mimetypes
 import os, time
 import urllib.parse
+import urllib.request
+from datetime import datetime
 from functools import partial
 
 
@@ -79,6 +82,10 @@ def w3c_datetime(i):
     return o
 
 
+def w3c_now():
+    return w3c_datetime(datetime.now().timestamp())
+
+
 def md5_for_file(filename, block_size=2**14):
     """Compute MD5 digest for a file
 
@@ -91,5 +98,11 @@ def md5_for_file(filename, block_size=2**14):
             d.update(buf)
 
     return base64.b64encode(d.digest()).decode('utf-8')
+
+
+def mime_type(filename):
+    """ Not too reliable mime type analyzer."""
+    url = urllib.request.pathname2url(filename)
+    return mimetypes.guess_type(url)[0]
 
 

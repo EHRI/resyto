@@ -29,6 +29,16 @@ class TestDefaults(unittest.TestCase):
     def test_w3c_datetime(self):
         self.assertEquals("2016-10-15T14:08:31Z", defaults.w3c_datetime(1476540511))
 
+    @unittest.skip("no automated test")
+    def test_w3c_now(self):
+        print(defaults.w3c_now())
+
+    @unittest.skip("no automated test")
+    def test_mime_type(self):
+
+        print(defaults.mime_type("/Users/ecco/Documents/DANS/ehri/tm-2016-02-26.xls"))
+        print(defaults.mime_type("/Users/ecco/Documents/DANS/ehri/tm-2016-02-26 copy.xml"))
+
 
 
 
