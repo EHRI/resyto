@@ -4,13 +4,18 @@ import logging
 from abc import ABCMeta, abstractmethod
 
 
+class ObserverInterruptException(RuntimeError):
+    pass
+
+
 class Observable(object):
     def __init__(self):
         self.observers = []
 
-    def register(self, observer):
-        if not observer in self.observers:
-            self.observers.append(observer)
+    def register(self, *observers):
+        for observer in observers:
+            if not observer in self.observers:
+                self.observers.append(observer)
 
     def unregister(self, observer):
         if observer in self.observers:
@@ -20,17 +25,31 @@ class Observable(object):
         if self.observers:
             del self.observers[:]
 
-    def update_observers(self, *args, **kwargs):
+    def observers_inform(self, *args, **kwargs):
         for observer in self.observers:
-            observer.update(*args, **kwargs)
+            observer.inform(*args, **kwargs)
+
+    def observers_confirm(self, *args, **kwargs):
+        confirm = True
+        for observer in self.observers:
+            if not observer.confirm(*args, **kwargs):
+                confirm = False
+                break
+
+        return confirm
 
 
 class Observer(object):
     __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def update(self, *args, **kwargs):
+    def inform(self, *args, **kwargs):
         pass
+
+    def confirm(self, *args, **kwargs):
+        # raise ObserverInterruptError("Some message")
+        # return False
+        # default implementation:
+        return True
 
 
 class EventPrinter(Observer):
@@ -38,7 +57,7 @@ class EventPrinter(Observer):
     def __init__(self, event_level = 0):
         self.event_level = event_level
 
-    def update(self, *args, **kwargs):
+    def inform(self, *args, **kwargs):
         if len(args) == 2:
             try:
                 source = args[0].__class__.__name__
@@ -58,7 +77,7 @@ class EventLogger(Observer):
         self.logging_level = logging_level
         self.event_level = event_level
 
-    def update(self, *args, **kwargs):
+    def inform(self, *args, **kwargs):
         if len(args) == 2:
             try:
                 source = args[0].__class__.__name__
@@ -76,7 +95,7 @@ class SelectiveEventPrinter(Observer):
     def __init__(self, *events):
         self.events = events
 
-    def update(self, *args, **kwargs):
+    def inform(self, *args, **kwargs):
         if len(args) > 1:
             event = args[1]
             if not self.events is None:
@@ -95,7 +114,7 @@ class SelectiveEventLogger(Observer):
         self.logger = logging.getLogger(__name__)
         self.level = level
 
-    def update(self, *args, **kwargs):
+    def inform(self, *args, **kwargs):
         if len(args) > 1:
             event = args[1]
             if not self.events is None:

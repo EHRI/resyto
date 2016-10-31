@@ -3,19 +3,20 @@
 import logging
 import os
 import re
-from collections import Iterator, Iterable
 from enum import Enum
 from glob import glob
 
-from model.config import Configuration
-from pluggable.gate import ResourceGateBuilder
+from model.executor_changelist import NewChangelistExecutor, IncrementalChangelistExecutor
+from model.executor_resourcelist import ResourceListExecutor
+from model.executors import ExecutorParameters, SitemapData
+from model.rs_enum import Strategy, Capability
 from resync import CapabilityList
 from resync import ChangeList
 from resync import Resource
 from resync import ResourceList
+from resync.list_base_with_index import ListBaseWithIndex
 from resync.sitemap import Sitemap
 from util import defaults
-from util.gates import PluggedInGateBuilder
 from util.observe import Observable
 
 LOG = logging.getLogger(__name__)
@@ -32,67 +33,98 @@ class ResourceSyncEvent(Enum):
     found_changes = 4
 
 
-class Capability(Enum):
+class ResourceSync(Observable, ExecutorParameters):
 
-    resourcelist = 0
-    changelist = 1
-    resourcedump = 2
-    changedump = 3
-    resourcedump_manifest = 4
-    changedump_manifest = 5
-    capabilitylist = 6
-    description = 7
-
-
-class ResourceSync(Observable):
-
-    def __init__(self, resource_dir=None, metadata_dir=None, url_prefix=None, plugin_dir=None):
+    def __init__(self, **kwargs):
         Observable.__init__(self)
-        self.config = Configuration()
-        self.resource_dir = self.config.core_resource_dir() if resource_dir is None else resource_dir
-        self.metadata_dir = self.config.core_metadata_dir() if metadata_dir is None else metadata_dir
-        defaults.sanitize_directory_path(self.resource_dir)
-        self.url_prefix = self.config.core_url_prefix() if url_prefix is None else url_prefix
-        defaults.sanitize_url_prefix(self.url_prefix)
-        self.plugin_dir = self.config.core_plugin_dir() if plugin_dir is None else plugin_dir
-        if self.plugin_dir is "":
-            self.plugin_dir = None
+        ExecutorParameters.__init__(self, **kwargs)
 
-        default_builder = ResourceGateBuilder(self.resource_dir, self.metadata_dir, self.plugin_dir)
-        gate_builder = PluggedInGateBuilder(CLASS_NAME_RESOURCE_GATE_BUILDER, default_builder, self.plugin_dir)
-        self.passes_resourcegate = gate_builder.build_gate()
+    def execute(self, filenames: iter):
+        executor = None
+        if self.__strategy__() == Strategy.new_resourcelist:
+            executor = ResourceListExecutor(**self.__dict__)
+        elif self.__strategy__() == Strategy.new_changelist:
+            executor = NewChangelistExecutor(**self.__dict__)
+        elif self.__strategy__() == Strategy.inc_changelist:
+            executor = IncrementalChangelistExecutor(**self.__dict__)
 
-        self.max_items_in_list = 50000
-        self.pretty_xml = True
-        self.save_sitemaps = True
-        self.capabilitylist_count = 0
-        self.previous_resources = None
+        if executor:
+            executor.register(*self.observers)
+            executor.execute(filenames)
+        else:
+            raise NotImplementedError("Strategy not implemented: %s" % self.strategy)
 
-    def capabilitylist_generator(self):
+    def assemble_sitemaps(self, sitemap_generator, capabilitylist=None):
+        self.start_processing = defaults.w3c_now()
+        sitemaps = []
 
-        def generator(sitemap_generator, capabilitylist=None):
+        for sitemap_data, sitemap in sitemap_generator():
+            sitemaps.append(sitemap_data)
 
-            for count_resources, count_docs, sitemap_url, sitemap in sitemap_generator():
-                if capabilitylist is None:
-                    capabilitylist = CapabilityList()
-                    self.capabilitylist_count += 1
+        self.end_processing = defaults.w3c_now()
 
-                capabilitylist.add_capability(sitemap, sitemap_url)
+        if len(sitemaps) > 1:
+            sitemaps = self.create_index(sitemaps)
 
-            if capabilitylist:
-                uri = self.save_sitemap(self.capabilitylist_count, capabilitylist)
-                yield uri, capabilitylist
+        if len(sitemaps) == 1:
+            if capabilitylist is None:
+                capabilitylist = CapabilityList()
 
-        return generator
+            resources_count = 0
+            for sitemap_data in sitemaps:
+                capabilitylist.add(Resource(uri=sitemap_data.url, capability=sitemap_data.capability_name))
+                resources_count = sitemap_data.resources_count
+
+            self.finish_sitemap(resources_count, 1, capabilitylist)
+        return capabilitylist
+
+    def create_index(self, sitemaps):
+        if len(sitemaps) == 0:
+            return []
+
+        capability_name = sitemaps[0].capability_name
+        if capability_name == "resourcelist":
+            return self.create_resourcelist_index(sitemaps)
+        elif capability_name == "changelist":
+            return self.create_changelist_index(sitemaps)
+
+    def create_resourcelist_index(self, sitemaps):
+        rl_index = ResourceList()
+        rl_index.sitemapindex = True
+        rl_index.md_at = self.start_processing
+        rl_index.md_completed = self.end_processing
+        index_path = os.path.join(self.metadata_dir, "resourcelist-index" + ".xml")
+        rel_index_path = os.path.relpath(index_path, self.resource_dir)
+        index_url = self.url_prefix + defaults.sanitize_url_path(rel_index_path)
+        rl_index.link_set(rel="up", href=self.current_capabilitylist_url())
+
+        resources_count = 0
+        for sitemap_data in sitemaps:
+            rl_index.add(Resource(uri=sitemap_data.url, md_at=sitemap_data.md_at,
+                                  md_completed=sitemap_data.md_completed))
+            if sitemap_data.document_saved:
+                self.update_rel_index(index_url, sitemap_data.path)
+            resources_count = sitemap_data.resources_count
+
+        sitemap_data = SitemapData(resources_count, 1, index_url, index_path, "resourcelist")
+        if self.save_sitemaps:
+            self.save_sitemap(rl_index, index_path)
+            sitemap_data.document_saved = True
+
+        self.observers_inform(self, ResourceSyncEvent.completed_document, document=rl_index, **sitemap_data.__dict__)
+        return [sitemap_data]
+
+    def create_changelist_index(self, sitemaps, ):
+        raise NotImplementedError
 
     def resourcelist_generator(self, filenames: iter) -> iter:
 
-        def generator() -> [int, int, ResourceList]:
+        def generator() -> [SitemapData, ResourceList]:
             resourcelist = None
-            count_docs = self.list_ordinal(Capability.resourcelist.name)
-            count_resources = 0
+            document_count = self.list_ordinal(Capability.resourcelist.name)
+            resource_count = 0
             resource_generator = self.resource_generator()
-            for count_resources, resource in resource_generator(filenames):
+            for resource_count, resource in resource_generator(filenames):
                 # stuff resource into resourcelist
                 if resourcelist is None:
                     resourcelist = ResourceList()
@@ -101,59 +133,60 @@ class ResourceSync(Observable):
                 resourcelist.add(resource)
 
                 # under conditions: yield the current resourcelist
-                if count_resources % self.max_items_in_list == 0:
-                    count_docs += 1
+                if resource_count % self.max_items_in_list == 0:
+                    document_count += 1
                     resourcelist.md_completed = defaults.w3c_now()
-                    uri = self.save_sitemap(count_docs, resourcelist)
-                    yield count_resources, count_docs, uri, resourcelist
+                    sitemap_data = self.finish_sitemap(resource_count, document_count, resourcelist)
+                    yield sitemap_data, resourcelist
                     resourcelist = None
 
             # under conditions: yield the current and last resourcelist
             if resourcelist:
-                count_docs += 1
+                document_count += 1
                 resourcelist.md_completed = defaults.w3c_now()
-                uri = self.save_sitemap(count_docs, resourcelist)
-                yield count_resources, count_docs, uri, resourcelist
+                sitemap_data = self.finish_sitemap(resource_count, document_count, resourcelist)
+                yield sitemap_data, resourcelist
 
         return generator
 
     def changelist_generator(self, filenames: iter) -> iter:
 
-        def generator() -> [int, int, ChangeList]:
+        def generator() -> [SitemapData, ChangeList]:
             resource_generator = self.resource_generator()
-            prev = self.previous_state()
-            curr = {resource.uri: resource for count, resource in resource_generator(filenames)}
-            created = [r for r in curr.values() if r.uri not in prev]
-            updated = [r for r in curr.values() if r.uri in prev and r.md5 != prev[r.uri].md5]
-            deleted = [r for r in prev.values() if r.uri not in curr]
-            self.update_observers(self, ResourceSyncEvent.found_changes, created=len(created), updated=len(updated),
+            self.update_previous_state()
+            prev_r = self.previous_resources
+            curr_r = {resource.uri: resource for count, resource in resource_generator(filenames)}
+            created = [r for r in curr_r.values() if r.uri not in prev_r]
+            updated = [r for r in curr_r.values() if r.uri in prev_r and r.md5 != prev_r[r.uri].md5]
+            deleted = [r for r in prev_r.values() if r.uri not in curr_r]
+            self.observers_inform(self, ResourceSyncEvent.found_changes, created=len(created), updated=len(updated),
                                   deleted=len(deleted))
-            all_res = {"created": created, "updated": updated, "deleted": deleted}
+            all_r = {"created": created, "updated": updated, "deleted": deleted}
 
             changelist = None
-            count_docs = self.list_ordinal(Capability.changelist.name)
-            count_resources = 0
-            for kv in all_res.items():
+            document_count = self.list_ordinal(Capability.changelist.name)
+            resource_count = 0
+            for kv in all_r.items():
                 for resource in kv[1]:
                     if changelist is None:
                         changelist = ChangeList()
 
                     resource.change = kv[0]
                     changelist.add(resource)
-                    count_resources += 1
+                    resource_count += 1
 
                     # under conditions: yield the current changelist
-                    if count_resources % self.max_items_in_list == 0:
-                        count_docs += 1
-                        uri = self.save_sitemap(count_docs, changelist)
-                        yield count_resources, count_docs, uri, changelist
+                    if resource_count % self.max_items_in_list == 0:
+                        document_count += 1
+                        sitemap_data = self.finish_sitemap(resource_count, document_count, changelist)
+                        yield sitemap_data, changelist
                         changelist = None
 
             # under conditions: yield the current and last changelist
             if changelist:
-                count_docs += 1
-                uri = self.save_sitemap(count_docs, changelist)
-                yield count_resources, count_docs, uri, changelist
+                document_count += 1
+                sitemap_data = self.finish_sitemap(resource_count, document_count, changelist)
+                yield sitemap_data, changelist
 
         return generator
 
@@ -183,7 +216,7 @@ class ResourceSync(Observable):
                                             md5=defaults.md5_for_file(file),
                                             mime_type=defaults.mime_type(file))
                         yield count, resource
-                        self.update_observers(self, ResourceSyncEvent.created_resource, resource=resource,
+                        self.observers_inform(self, ResourceSyncEvent.created_resource, resource=resource,
                                               count=count)
                     else:
                         LOG.debug("Rejected by resourcegate: %s" % file)
@@ -195,26 +228,33 @@ class ResourceSync(Observable):
     def walk_directories(self, *directories) -> [str]:
         for directory in directories:
             abs_dir = os.path.abspath(directory)
-            self.update_observers(self, ResourceSyncEvent.start_file_search, directory=abs_dir)
+            self.observers_inform(self, ResourceSyncEvent.start_file_search, directory=abs_dir)
             for root, _directories, _filenames in os.walk(abs_dir):
                 for filename in _filenames:
                     file = os.path.join(root, filename)
-                    self.update_observers(self, ResourceSyncEvent.found_file, file=file)
+                    self.observers_inform(self, ResourceSyncEvent.found_file, file=file)
                     yield file
 
-    def save_sitemap(self, count, sitemap) -> str:
-        path = os.path.join(self.metadata_dir, sitemap.capability_name + "{0:03d}".format(count) + ".xml")
+    def finish_sitemap(self, resource_count, document_count, sitemap) -> SitemapData:
+        capability_name = sitemap.capability_name
+        path = os.path.join(self.metadata_dir, capability_name + "_{0:03d}".format(document_count) + ".xml")
         rel_path = os.path.relpath(path, self.resource_dir)
-        uri = self.url_prefix + defaults.sanitize_url_path(rel_path)
-
+        url = self.url_prefix + defaults.sanitize_url_path(rel_path)
         sitemap.link_set(rel="up", href=self.current_rel_up_for(sitemap))
-        sitemap.pretty_xml = self.pretty_xml
+        sitemap_data = SitemapData(resource_count, document_count, url, path, capability_name)
+
+        if capability_name == "resourcelist":
+            sitemap_data.md_at = sitemap.md_at
+            sitemap_data.md_completed = sitemap.md_completed
+
         if self.save_sitemaps:
+            sitemap.pretty_xml = self.pretty_xml
             with open(path, "w") as sm_file:
                 sm_file.write(sitemap.as_xml())
+            sitemap_data.document_saved = True
 
-        self.update_observers(self, ResourceSyncEvent.completed_document, uri=uri, document=sitemap, count=count)
-        return uri
+        self.observers_inform(self, ResourceSyncEvent.completed_document, document=sitemap, **sitemap_data.__dict__)
+        return sitemap_data
 
     def current_rel_up_for(self, sitemap):
         if sitemap.capability_name == "capabilitylist":
@@ -223,7 +263,7 @@ class ResourceSync(Observable):
             return self.current_capabilitylist_url()
 
     def current_capabilitylist_url(self) -> str:
-        path = os.path.join(self.metadata_dir, "capabilitylist" + "{0:03d}".format(self.capabilitylist_count) + ".xml")
+        path = os.path.join(self.metadata_dir, "capabilitylist_" + "{0:03d}".format(1) + ".xml")
         rel_path = os.path.relpath(path, self.resource_dir)
         return self.url_prefix + defaults.sanitize_url_path(rel_path)
 
@@ -232,18 +272,25 @@ class ResourceSync(Observable):
         rel_path = os.path.relpath(path, self.resource_dir)
         return self.url_prefix + defaults.sanitize_url_path(rel_path)
 
-    def previous_state(self) -> [Resource]:
+    def update_previous_state(self):
         if self.previous_resources is None:
             self.previous_resources = {}
-            resourcelist_files = sorted(glob(os.path.join(self.metadata_dir, "resourcelist*.xml")))
+
+            # search for resourcelists
+            resourcelist_files = sorted(glob(os.path.join(self.metadata_dir, "resourcelist_*.xml")))
             for rl_file_name in resourcelist_files:
                 resourcelist = ResourceList()
                 with open(rl_file_name, "r") as rl_file:
                     sm = Sitemap()
                     sm.parse_xml(rl_file, resources=resourcelist)
-                    self.previous_resources.update({resource.uri: resource for resource in resourcelist.resources})
 
-            changelist_files = sorted(glob(os.path.join(self.metadata_dir, "changelist*.xml")))
+                self.md_from = resourcelist.md_at
+                self.previous_resources.update({resource.uri: resource for resource in resourcelist.resources})
+
+            # search for changelists
+            changelist_files = sorted(glob(os.path.join(self.metadata_dir, "changelist_*.xml")))
+            if self.strategy == Strategy.new_changelist and len(changelist_files) > 0:
+                self.md_from = defaults.w3c_now()
             for cl_file_name in changelist_files:
                 changelist = ChangeList()
                 with open(cl_file_name, "r") as cl_file:
@@ -256,8 +303,12 @@ class ResourceSync(Observable):
                     elif resource.change == "deleted" and resource.uri in self.previous_resources:
                         del self.previous_resources[resource.uri]
 
+                # ToDo change until value of existing changelists in another method. Not here.
+                # if self.strategy == Strategy.new_changelist and self.save_sitemaps:
+                #     changelist.md_until = self.md_from
+                #     self.save_sitemap(changelist, cl_file_name)
+
         LOG.debug("Found %d resources in previous state." % len(self.previous_resources))
-        return self.previous_resources
 
     def list_ordinal(self, capability):
         rs_files = sorted(glob(os.path.join(self.metadata_dir, capability + "*.xml")))
@@ -267,6 +318,24 @@ class ResourceSync(Observable):
             filename = os.path.basename(rs_files[len(rs_files) - 1])
             digits = re.findall("\d+", filename)
             return int(digits[0]) if len(digits) > 0 else 0
+
+    def save_sitemap(self, sitemap, path):
+        sitemap.pretty_xml = self.pretty_xml
+        with open(path, "w") as sm_file:
+            sm_file.write(sitemap.as_xml())
+
+    def read_sitemap(self, path):
+        with open(path, "r") as file:
+            sm = Sitemap()
+            sitemap = ListBaseWithIndex()
+            sm.parse_xml(file, resources=sitemap)
+
+        return sitemap
+
+    def update_rel_index(self, index_url, path):
+        sitemap = self.read_sitemap(path)
+        sitemap.link_set(rel="index", href=index_url)
+        self.save_sitemap(sitemap, path)
 
 
 

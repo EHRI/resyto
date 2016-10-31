@@ -31,7 +31,7 @@ class TestResourceSync(unittest.TestCase):
         metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
         plugin_dir = os.path.join(user_home, "tmp", "rs", "plugins")
         rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
-        # rs.register(GreedyEventLogger(level=logging.INFO))
+        rs.register(EventLogger(logging_level=logging.INFO))
 
         generator = rs.resource_generator()
         for count, resource in generator([os.path.join(user_home, "tmp/rs"), ["foo"], "bar", 6, None, "."]):
@@ -44,54 +44,51 @@ class TestResourceSync(unittest.TestCase):
         #plugin_dir = None
         rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
         rs.max_items_in_list = 5
-        rs.register(EventLogger(logging_level=logging.INFO))
+        #rs.register(EventLogger(logging_level=logging.INFO, event_level=3))
 
         generator1 = rs.resourcelist_generator([os.path.join(user_home, "tmp/rs")])
         generator2 = rs.resourcelist_generator([os.path.join(user_home, "tmp/rs/collection3")])
 
-        for count_resources, count_documents, uri, rlist in generator1():
+        for sitemap_data, rlist in generator1():
             rlist.pretty_xml = True
-            print("========\n", "count resources=%d, count_documents=%d uri=%s\n"
-                  % (count_resources, count_documents, uri),
+            print("========\n", sitemap_data, "\n",
                   rlist.as_xml())
 
         time.sleep(10)
 
-        for count_resources, count_documents, uri, rlist in generator2():
+        for sitemap_data, rlist in generator2():
             rlist.pretty_xml = True
-            print("========\n", "count resources=%d, count_documents=%d uri=%s\n"
-                  % (count_resources, count_documents, uri),
+            print("========\n", sitemap_data, "\n",
                   rlist.as_xml())
 
-    def test_capabilitylist_generator_with_resourcelist(self):
+    def test_assemble_sitemaps_with_resourcelist_generator(self):
         user_home = os.path.expanduser("~")
         metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
         plugin_dir = os.path.join(user_home, "tmp", "rs", "plugins")
         # plugin_dir = None
         rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
         rs.max_items_in_list = 5
+        #rs.save_sitemaps = False
         rs.register(EventLogger(logging_level=logging.INFO, event_level=3))
 
         list_generator = rs.resourcelist_generator([os.path.join(user_home, "tmp/rs")])
-        generator = rs.capabilitylist_generator()
-        for uri, li in generator(list_generator):
-            li.pretty_xml = True
-            print(uri + "\n" + li.as_xml())
 
-    def test_capabilitylist_generator_with_changelist(self):
-        user_home = os.path.expanduser("~")
-        metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
-        plugin_dir = os.path.join(user_home, "tmp", "rs", "plugins")
+        capabilitylist = rs.assemble_sitemaps(list_generator)
 
-        rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir, plugin_dir=plugin_dir)
-        rs.max_items_in_list = 5
-        rs.register(EventLogger(logging_level=logging.INFO, event_level=3))
+    def test_read_save_sitemap(self):
+        rs = ResourceSync()
+        path = "/Users/ecco/tmp/rs/metadata/resourcelist001.xml"
 
-        list_generator = rs.changelist_generator([os.path.join(user_home, "tmp/rs")])
-        generator = rs.capabilitylist_generator()
-        for uri, li in generator(list_generator):
-            li.pretty_xml = True
-            print(uri + "\n" + li.as_xml())
+        sitemap = rs.read_sitemap(path)
+        sitemap.pretty_xml = True
+        xml1 = sitemap.as_xml()
+
+        rs.save_sitemap(sitemap, path)
+        sitemap = rs.read_sitemap(path)
+        sitemap.pretty_xml = True
+        xml2 = sitemap.as_xml()
+
+        self.assertEqual(xml1, xml2)
 
 
     def test_previous_state_resources(self):
@@ -99,7 +96,9 @@ class TestResourceSync(unittest.TestCase):
         metadata_dir = os.path.join(user_home, "tmp", "rs", "metadata")
         rs = ResourceSync(resource_dir=user_home, metadata_dir=metadata_dir)
 
-        resources = rs.previous_state()
+        rs.update_previous_state()
+        print(rs.previous_resources)
+        print(rs.md_from)
 
 
     def test_changelist_generator(self):

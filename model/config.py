@@ -3,7 +3,7 @@
 
 import logging, os, platform
 from configparser import ConfigParser
-from model.strategy import Strategy
+from model.rs_enum import Strategy
 from util import defaults
 
 # Location for configuration files on Windows: ﻿
@@ -128,10 +128,10 @@ class Configuration(object):
         self.__set_option__(SECTION_CORE, "resource_dir", defaults.sanitize_directory_path(resource_dir))
 
     def core_metadata_dir(self):
-        return self.parser.get(SECTION_CORE, "metadata_dir", fallback=os.path.expanduser("~"))
+        return self.parser.get(SECTION_CORE, "metadata_dir", fallback="metadata")
 
     def set_core_metadata_dir(self, metadata_dir):
-        self.__set_option__(SECTION_CORE, "metadata_dir", defaults.sanitize_directory_path(metadata_dir))
+        self.__set_option__(SECTION_CORE, "metadata_dir", metadata_dir)
 
     def core_plugin_dir(self):
         return self.parser.get(SECTION_CORE, "plugin_dir", fallback="")
@@ -152,7 +152,7 @@ class Configuration(object):
         self.__set_option__(SECTION_CORE, "url_prefix", defaults.sanitize_url_prefix(urlprefix))
 
     def core_strategy(self):
-        return Strategy[self.parser.get(SECTION_CORE, "strategy", fallback=Strategy.resourcelist.name)]
+        return Strategy[self.parser.get(SECTION_CORE, "strategy", fallback=Strategy.new_resourcelist.name)]
 
     def set_core_strategy(self, name):
         self.__set_option__(SECTION_CORE, "strategy", Strategy.sanitize(name))

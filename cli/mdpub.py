@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 import cmd, glob
 from model.config import Configuration
-from model.strategy import Strategy
+from model.rs_enum import Strategy
 
 # Set up gnureadline as readline if installed.
 try:
