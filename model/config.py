@@ -139,6 +139,12 @@ class Configuration(object):
     def set_core_plugin_dir(self, plugin_dir):
         self.__set_option__(SECTION_CORE, "plugin_dir", defaults.sanitize_directory_path(plugin_dir))
 
+    def core_history_dir(self):
+        return self.parser.get(SECTION_CORE, "history_dir", fallback="history")
+
+    def set_core_history_dir(self, history_dir):
+        self.__set_option__(SECTION_CORE, "history_dir", history_dir)
+
     def core_sourcedesc(self):
         return self.parser.get(SECTION_CORE, "sourcedesc", fallback="/.well-known/resourcesync")
 

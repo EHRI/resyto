@@ -52,6 +52,22 @@ class Observer(object):
         return True
 
 
+class EventObserver(Observer):
+
+    def inform(self, *args, **kwargs):
+        if len(args) == 2:
+            try:
+                event = args[1]
+                getattr(self, "inform_" + event.name)(*args, **kwargs)
+            except AttributeError:
+                self.pass_inform(*args, **kwargs)
+        else:
+            self.pass_inform(*args, **kwargs)
+
+    def pass_inform(self, *args, **kwargs):
+        pass
+
+
 class EventPrinter(Observer):
 
     def __init__(self, event_level = 0):
@@ -68,6 +84,10 @@ class EventPrinter(Observer):
                 print("unexpected args: ", args)
         else:
             print(args, kwargs)
+
+    def confirm(self, *args, **kwargs):
+        self.inform(*args, **kwargs)
+        return True
 
 
 class EventLogger(Observer):
@@ -88,6 +108,11 @@ class EventLogger(Observer):
                 self.logger.warn("unexpected args: " % args)
         else:
             self.logger.log(self.logging_level, "%s, %s" % (args, kwargs))
+
+    def confirm(self, *args, **kwargs):
+        self.inform(*args, **kwargs)
+        return True
+
 
 
 class SelectiveEventPrinter(Observer):
