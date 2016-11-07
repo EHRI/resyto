@@ -62,16 +62,3 @@ class ExecutionHistory(EventObserver):
 
     def inform_execution_start(self, *args, **kwargs):
         pass
-        self.write_history(*args, **kwargs)
-
-    def write_history(self, *args, **kwargs):
-        with open(self.history_file, "w") as dump_file:
-            self.write_kv(dump_file, **kwargs)
-
-
-    def write_kv(self, fh, **kwargs):
-        for key, value in kwargs.iteritems():
-            if isinstance(value, dict):
-                self.write_kv(fh, value)
-            else:
-                fh.write(key + ":" + str(value))
